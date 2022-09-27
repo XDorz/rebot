@@ -1,0 +1,65 @@
+server:
+  tomcat:
+    remote-ip-header: x-forwarded-for
+    protocol-header: x-forwarded-proto
+    port-header: X-Forwarded-Port
+  port: 8080
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/rebot?serverTimezone=Asia/Shanghai&useSSL=false&characterEncoding=utf8
+    username: root
+    password: 510105xzyf
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+  banner:
+    location: /config/banner.txt
+  redis:
+    host: 127.0.0.1 # redis 服务 ip
+    port: 6379 # 端口
+    database: 1 # 默认数据库索引
+    password: # redis 密码
+    timeout: 1000 # 连接超时
+    jedis:
+      pool:
+        max-idle: 128 # 连接池最大空闲数
+        min-idle: 8 # 连接池最小空闲数
+        max-wait: 1000 # 最长等待时间
+mirai:
+  config:
+    workdir: C:\Users\谢昕捷\Desktop\workspace
+#    workdir: ${user.dir}/workspace
+    cachedir: ${mirai.config.workdir}/cache
+    autoconn: true
+    enablecache: true
+#    enablecache: false
+    deviceinfo: true
+    devicename: device.json
+    event:
+      quoteReply: false
+      autoSend: true
+      transTraditional: true
+
+  basepath:
+    emojipath: ${mirai.config.workdir}/emoji/
+    replydatapath: ${mirai.config.workdir}/reply/
+    replyapipath: ${mirai.config.workdir}/api/
+    botpath: ${mirai.config.workdir}/
+
+    image: ${mirai.config.workdir}/source/image/
+    minesweeper: ${mirai.config.workdir}/source/MineSweeper/
+    pokecard: ${mirai.config.workdir}/source/PokeCard/
+    stroke: ${mirai.config.workdir}/source/stroke/
+    clap: ${mirai.config.workdir}/source/clap/
+    fivechess: ${mirai.config.workdir}/source/FiveChess/
+    yunshi: ${mirai.config.workdir}/source/yunshi/
+    genshin: ${mirai.basepath.yunshi}/genshin/
+baidu:
+  config:
+    appid: 26797776
+    apikey: moSgHcuna6aLz3Onf7AgfGlw
+    secretkey: CvVbevGNKxiblGelnWTT6LO7YthF9oqL
