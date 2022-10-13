@@ -1,30 +1,21 @@
 
 import cn.hutool.core.img.ImgUtil;
 import cn.hutool.core.io.FileUtil;
-import com.alibaba.fastjson.JSONObject;
 import com.luhuiguo.chinese.ChineseUtils;
 import com.luhuiguo.chinese.pinyin.PinyinFormat;
 import com.luhuiguo.chinese.pinyin.ToneType;
-import com.xxj.qqbot.MiraiBotApplication;
-import com.xxj.qqbot.util.botconfig.config.Yunshi;
-import com.xxj.qqbot.util.botconfig.init.ConfigInit;
-import com.xxj.qqbot.util.botconfig.init.EnvironmentInit;
+import com.xxj.qqbot.util.botconfig.functioncompent.HelpImageConfig;
 import com.xxj.qqbot.util.common.BeastTransUtil;
 import com.xxj.qqbot.util.common.ImageUtil;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.imageio.ImageIO;
-
-import java.awt.*;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.lang.reflect.Field;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -39,10 +30,30 @@ public class TestMethod {
     private static Pattern pattern=Pattern.compile("\\[.+$");
 
     @Test
+    public void testhelp() throws IOException {
+        String val="指令：运势\n该指令返回一张我的妈呀怎么才能让他填满呢我真的是服了哈哈哈(114514){今日运势图}，多次(yellow){重复输入}请求图片不变\n该功能每日{零点刷新}!";
+        HelpImageConfig config = HelpImageConfig.DEFAULT;
+        config.setX(30);
+        config.setAutoHeight(true);
+        BufferedImage back = ImageIO.read(new File(System.getProperty("user.home") + "/desktop/input.png"));
+        BufferedImage result = ImageUtil.drawHelp(val, config, back);
+        ImageIO.write(result,"png",new File(System.getProperty("user.home") + "/desktop/result.png"));
+    }
+
+    @Test
     public void sss(){
         String str="";
         System.out.println((str=BeastTransUtil.encode("中国共产党")));
 //        System.out.println(BeastTransUtil.decode(str));
+    }
+
+    @Test
+    public void testPattern(){
+        String colorNumPattern="1[0-9][0-9]|2[0-4][0-9]|25[0-5]|[0-9][0-9]|[0-9]";
+        Pattern ptn=Pattern.compile("("+colorNumPattern+")[,，.。]("+colorNumPattern+")[,，.。]("+colorNumPattern+")([,，.。]([0-9][0-9]|100|[0-9]))?");
+        Matcher matcher = ptn.matcher("212,110,119");
+        matcher.find();
+        System.out.println(matcher.group(5));
     }
 
     /**

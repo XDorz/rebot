@@ -3,30 +3,33 @@ package com.xxj.qqbot.util.common;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpUtil;
 import lombok.extern.slf4j.Slf4j;
-import net.mamoe.mirai.contact.Friend;
-import net.mamoe.mirai.contact.Group;
-import net.mamoe.mirai.event.events.MessageEvent;
+import net.mamoe.mirai.contact.AudioSupported;
+import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.message.data.OfflineAudio;
 import net.mamoe.mirai.utils.ExternalResource;
 import org.springframework.util.StringUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 
 @Slf4j
 public class BotAudioUtil {
 
-    public static OfflineAudio upLoad(String filePath, MessageEvent event){
+    public static OfflineAudio upLoad(String filePath, Contact contact){
         if(!StringUtils.hasText(filePath)) return null;
         File file=new File(filePath);
-        return upLoad(file,event);
+        return upLoad(file,contact);
     }
 
-    public static OfflineAudio upLoad(File file, MessageEvent event){
-        if(!file.exists()) return null;
+    public static OfflineAudio upLoad(File file, Contact contact){
+        if(!file.exists()) log.error("所要上传的音频文件不存在！");
         FileInputStream fileInputStream=null;
         try {
             fileInputStream=new FileInputStream(file);
-            return upLoad(fileInputStream,event);
+            return upLoad(fileInputStream,contact);
         } catch (FileNotFoundException e) {
             log.error("没有此文件！",e);
         }finally {
@@ -41,35 +44,27 @@ public class BotAudioUtil {
         return null;
     }
 
-    public static OfflineAudio upLoadByUrl(String url, MessageEvent event){
+    public static OfflineAudio upLoadByUrl(String url, Contact contact){
         if(!StringUtils.hasText(url)) return null;
         HttpRequest request = HttpUtil.createGet(url);
         request.setFollowRedirects(true);
         InputStream stream = request.execute().bodyStream();
-        return upLoad(stream,event);
+        return upLoad(stream,contact);
     }
 
     /**
      * 核心上传代码
      */
-    public static OfflineAudio upLoad(InputStream inputStream,MessageEvent event){
+    public static OfflineAudio upLoad(InputStream inputStream, Contact contact){
+        if(!(contact instanceof AudioSupported)){
+            throw new MoriBotException("该对象无法发送语音");
+        }
         if(inputStream==null) return null;
         ExternalResource resource=null;
-        if(inputStream==null){
-            return null;
-        }
         try {
             resource = ExternalResource.create(inputStream);
-            if(resource==null){
-                return null;
-            }
             OfflineAudio audio=null;
-            if (event.getSubject() instanceof Friend) {
-                audio=((Friend) event.getSubject()).uploadAudio(resource);
-            }
-            if(event.getSubject() instanceof Group){
-                audio=((Group) event.getSubject()).uploadAudio(resource);
-            }
+            audio=((AudioSupported) contact).uploadAudio(resource);
             return  audio;
         } catch (Throwable e) {
             log.error("文件上传失败！",e);
@@ -84,19 +79,19 @@ public class BotAudioUtil {
         return null;
     }
 
-    public static Integer uploadForId(String filePath, MessageEvent event){
-        return upLoad(filePath,event).getCodec().getId();
+    public static Integer uploadForId(String filePath, Contact contact){
+        return upLoad(filePath,contact).getCodec().getId();
     }
 
-    public static Integer uploadForId(File file, MessageEvent event){
-        return upLoad(file,event).getCodec().getId();
+    public static Integer uploadForId(File file, Contact contact){
+        return upLoad(file,contact).getCodec().getId();
     }
 
-    public static Integer uploadByUrlForId(String url, MessageEvent event){
-        return upLoadByUrl(url,event).getCodec().getId();
+    public static Integer uploadByUrlForId(String url, Contact contact){
+        return upLoadByUrl(url,contact).getCodec().getId();
     }
 
-    public static Integer upload(InputStream inputStream,MessageEvent event){
-        return upLoad(inputStream,event).getCodec().getId();
+    public static Integer upload(InputStream inputStream,Contact contact){
+        return upLoad(inputStream,contact).getCodec().getId();
     }
 }

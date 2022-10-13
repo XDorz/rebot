@@ -1,7 +1,7 @@
 package com.xxj.qqbot.util.common;
 
 import com.xxj.qqbot.util.botconfig.functioncompent.HelpImageConfig;
-import com.xxj.qqbot.util.botconfig.functioncompent.MenuImageConfig;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.imageio.ImageIO;
@@ -14,8 +14,10 @@ import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class ImageUtil {
@@ -41,6 +43,12 @@ public class ImageUtil {
     public static final int STRING_UP=17;
     public static final int STRING_DOWN=18;
 
+    //0整个表达式，1包含括号的颜色表达，2颜色表达，3颜色内容
+    private static final Pattern helpMenuPattern=Pattern.compile("(\\((.+?)\\))?\\{(.+?)\\}");
+    private static final Pattern numPattern=Pattern.compile("\\d+");
+    private static final String colorNumPattern="1[0-9][0-9]|2[0-4][0-9]|25[0-5]|[0-9][0-9]|[0-9]";
+    private static final Pattern colorPattern=Pattern.compile("("+colorNumPattern+")[,，.。]("+colorNumPattern+")[,，.。]("+colorNumPattern+")([,，.。]([0-9][0-9]|100|[0-9]))?");
+    private static final Color DEFAULTIMPORTANTCOLOR=Color.RED;
     /**
      * 核心文字绘制方法
      *
@@ -67,6 +75,7 @@ public class ImageUtil {
         graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         graphics.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,RenderingHints.VALUE_STROKE_DEFAULT);
         graphics.setPaint(color);
+        val=val.trim();
         char[] chars = val.toCharArray();
         int max = chars.length-1;
         int now=-1;
@@ -74,40 +83,15 @@ public class ImageUtil {
         int h=metrics.getHeight();
         int standardWidth = metrics.charWidth('你');
         y+=metrics.getMaxAscent();
+        FontDistribution distribution = calculateFontLocation(val, metrics, width, height, rowSpacing, colSpacing, isHorizontal, isPositive, isCenter, isLeft, isRight, isUp, isDown);
         if(isHorizontal){
-            int space=0;
-            if(isCenter||isLeft||isRight||isDown){
-                int i=0;
-                //文本预计的行数
-                int num=0;
-                while (true){
-                    i+=standardWidth;
-                    if(i>width) break;
-                    i+=colSpacing;
-                    num++;
-                }
-                space=width-Math.min(num,val.length())*standardWidth-(Math.min(num,val.length())-1)*colSpacing;
-                if(val.length()%num==0){
-                    num=val.length()/num;
-                }else {
-                    num=val.length()/num;
-                    num++;
-                }
-                if (isDown){
-                    y+=height-num*h-(num-1)*rowSpacing;
-                }else if(isCenter&&!isUp){
-                    y+=(height-num*h-(num-1)*rowSpacing)/2;
-                }
-            }
-            width-=standardWidth;
-            height-=h;
+            //保证绘制不会越过设定边界
+            width-=standardWidth+distribution.getWidthSpace()-2;
+            height-=h+distribution.getHeightSpace()-2;
             //横向排列
             if(isPositive){
-                if(isRight){
-                    x+=space;
-                }else if(isCenter&&!isLeft){
-                    x+=space/2;
-                }
+                x+=distribution.getWidthSpace();
+                y+=distribution.getHeightSpace();
                 loop1:
                 for (int j = 0; j < height;) {
                     for (int i = 0; i < width;) {
@@ -120,11 +104,6 @@ public class ImageUtil {
                     j+=h+rowSpacing;
                 }
             }else {
-                if(isLeft){
-                    x-=space;
-                }else if(isCenter&&!isRight){
-                    x-=space/2;
-                }
                 loop2:
                 for (int j = 0; j < height;) {
                     for (int i = width; i > 0;) {
@@ -138,38 +117,11 @@ public class ImageUtil {
                 }
             }
         }else {
-            int space=0;
-            if(isCenter||isLeft||isRight||isUp||isDown){
-                int i=0;
-                //文本预计的列数
-                int num=0;
-                while (true){
-                    i+=h;
-                    if(i>height) break;
-                    i+=rowSpacing;
-                    num++;
-                }
-                if(isDown){
-                    y+=height-Math.min(num,val.length())*h-(Math.min(num,val.length())-1)*rowSpacing;
-                }else if(isCenter&&!isUp){
-                    y+=(height-Math.min(num,val.length())*h-(Math.min(num,val.length())-1)*rowSpacing)/2;
-                }
-                if(val.length()%num==0){
-                    num=val.length() / num;
-                }else {
-                    num=val.length() / num;
-                    num++;
-                }
-                space=width-num*standardWidth-(num-1)*colSpacing;
-            }
-            width-=standardWidth;
-            height-=h;
+            width-=standardWidth+Math.abs(distribution.getWidthSpace())-2;
+            height-=h+Math.abs(distribution.getHeightSpace())-2;
             if(isPositive){
-                if(isRight){
-                    x+=space;
-                }else if(isCenter&&!isLeft){
-                    x+=space/2;
-                }
+                x+=distribution.getWidthSpace();
+                y+=distribution.getHeightSpace();
                 loop3:
                 for (int i = 0; i < width;) {
                     for (int j = 0; j < height;) {
@@ -182,11 +134,6 @@ public class ImageUtil {
                     i+=standardWidth+colSpacing;
                 }
             }else {
-                if(isLeft){
-                    x-=space;
-                }else if(isCenter&&!isRight){
-                    x-=space/2;
-                }
                 loop4:
                 for (int i = width; i > 0;) {
                     for (int j = 0; j < height;) {
@@ -202,6 +149,150 @@ public class ImageUtil {
         }
         graphics.dispose();
         return newImage;
+    }
+
+    /**
+     * widthSpace与heightSpace将不返回负值
+     * 如果 非isPositive 即反向排列，应从在x中减去widthSpace值
+     */
+    @Data
+    static class FontDistribution{
+        private int widthSpace;
+        private int heightSpace;
+        private int width;
+        private int height;
+        private int colNum;
+        private int rowNum;
+    }
+    private static FontDistribution calculateFontLocation(String val,FontMetrics metrics,int width,int height,int rowSpacing, int colSpacing,boolean isHorizontal, boolean isPositive, boolean isCenter, boolean isLeft, boolean isRight, boolean isUp, boolean isDown){
+        int h=metrics.getHeight();
+        int standardWidth = metrics.charWidth('你');
+        FontDistribution distribution=new FontDistribution();
+        if(isHorizontal){
+            int space=0;
+            if(isCenter||isLeft||isRight||isDown){
+                int i=0,num=0;
+                //每行的列数
+                while (true){
+                    i+=standardWidth;
+                    if(i>width) break;
+                    i+=colSpacing;
+                    num++;
+                }
+                num=Math.min(num,val.length());
+                distribution.setColNum(num);
+                int fWidth=num*standardWidth+(num-1)*colSpacing;
+                distribution.setWidth(fWidth);
+                space=width-fWidth;
+                int count=0,mx=num;
+                //文本预计行数
+                num=1;
+                for (int j = 0; j < val.length(); j++) {
+                    count++;
+                    if(val.charAt(j)=='\n'||count>mx){
+                        if(count>mx) j--;
+                        count=0;
+                        num++;
+                    }
+                }
+                distribution.setRowNum(num);
+                int fHeight=num*h+(num-1)*rowSpacing;
+                distribution.setHeight(fHeight);
+                if (isDown){
+//                    distribution.setHeightSpace(height-fHeight);
+                    distribution.setHeightSpace(Math.max(0,height-fHeight));
+                }else if(isCenter&&!isUp){
+//                    distribution.setHeightSpace((height-fHeight)/2);
+                    distribution.setHeightSpace(Math.max(0,(height-fHeight)/2));
+                }else {
+                    distribution.setHeightSpace(0);
+                }
+            }
+            if(isPositive){
+                //正向排列
+                if(isRight){
+//                    distribution.setWidthSpace(space);
+                    distribution.setWidthSpace(Math.max(0,space));
+                }else if(isCenter&&!isLeft){
+//                    distribution.setWidthSpace(space/2);
+                    distribution.setWidthSpace(Math.max(0,space/2));
+                }else {
+                    distribution.setWidthSpace(0);
+                }
+            }else {
+                if(isLeft){
+//                    distribution.setWidthSpace(-space);
+                    distribution.setWidthSpace(Math.max(0,space));
+                }else if(isCenter&&!isRight){
+//                    distribution.setWidthSpace(-space/2);
+                    distribution.setWidthSpace(Math.max(0,space/2));
+                }else {
+                    distribution.setWidthSpace(0);
+                }
+            }
+        }else {
+            int space=0;
+            if(isCenter||isLeft||isRight||isUp||isDown){
+                int i=0,num=0;
+                //文本预计的行数
+                while (true){
+                    i+=h;
+                    if(i>height) break;
+                    i+=rowSpacing;
+                    num++;
+                }
+                num=Math.min(num,val.length());
+                distribution.setRowNum(num);
+                int fHeight=num*h+(num-1)*rowSpacing;
+                distribution.setHeight(fHeight);
+                if(isDown){
+//                    distribution.setHeightSpace(height-fHeight);
+                    distribution.setHeightSpace(Math.max(0,height-fHeight));
+                }else if(isCenter&&!isUp){
+//                    distribution.setHeightSpace((height-fHeight)/2);
+                    distribution.setHeightSpace(Math.max(0,(height-fHeight)/2));
+                }else {
+                    distribution.setWidthSpace(0);
+                }
+                int count=0,mx=num;
+                //文本预计列数
+                num=1;
+                for (int j = 0; j < val.length(); j++) {
+                    count++;
+                    if(val.charAt(j)=='\n'||count>mx){
+                        if(count>mx) j--;
+                        count=0;
+                        num++;
+                    }
+                }
+                distribution.setColNum(num);
+                int fWidth=num*standardWidth+(num-1)*colSpacing;
+                distribution.setWidth(fWidth);
+                space=width-fWidth;
+            }
+            if(isPositive){
+                if(isRight){
+//                    distribution.setWidthSpace(space);
+                    distribution.setWidthSpace(Math.max(0,space));
+                }else if(isCenter&&!isLeft){
+//                    distribution.setWidthSpace(space/2);
+                    distribution.setWidthSpace(Math.max(0,space/2));
+                }else {
+                    distribution.setWidthSpace(0);
+                }
+            }else {
+                if(isLeft){
+//                    distribution.setWidthSpace(-space);
+                    distribution.setWidthSpace(Math.max(0,space));
+                }else if(isCenter&&!isRight){
+//                    distribution.setWidthSpace(-space/2);
+                    distribution.setWidthSpace(Math.max(0,space/2));
+                }else {
+                    distribution.setWidthSpace(0);
+                }
+            }
+        }
+        return distribution;
     }
 
     /**
@@ -447,20 +538,243 @@ public class ImageUtil {
     /**
      * 核心帮助画法
      *
-     * @param string
+     * @param context
      * @param config
      * @return
      */
-//    public static BufferedImage drawHelp(String string,HelpImageConfig config,BufferedImage background){
-//        //todo 待完成
-//    }
-//
+    public static BufferedImage drawHelp(String context,HelpImageConfig config,BufferedImage background){
+        background=copyImage(background);
+        Graphics2D board = (Graphics2D)background.getGraphics();
+        board.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+        board.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        board.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,RenderingHints.VALUE_STROKE_DEFAULT);
+        int bheight = background.getHeight();
+        int bwidth = background.getWidth();
+        int height=-1,width=-1;
+        int x=50,y=0;
+        boolean autoHeight=false;
+
+        //x与width确定
+        if(config.getWidth()>0){
+            width=config.getWidth();
+        }
+        if(config.getX()>=0){
+            x=config.getX();
+            if(width<1) width=bwidth-2*x;
+        }else if(config.getXPercent()!=-1f) {
+            x=(int)(bwidth*config.getXPercent());
+            if(width<1) width=bwidth-2*x;
+        }else {
+            if(width<1) width=bwidth-2*x;
+        }
+        //y与height确定
+        if(config.getHeight()>0){
+            height=config.getHeight();
+        }
+        if(config.getY()>=0){
+            y=config.getY();
+            if(height<1) height=bheight-2*y;
+        }else if(config.getYPercent()!=-1f) {
+            y=(int)(bheight*config.getYPercent());
+            if(height<1) height=bheight-2*y;
+        }else {
+            if(height<1) height=bheight-2*y;
+        }
+        if(config.isAutoHeight()) autoHeight=true;
+
+
+        ColorFontInfo colorFontInfo = handleColorFont(context);
+        board.setFont(config.getTitleFont());
+        String full=config.getTitleValue()+"\n"+colorFontInfo.getContext();
+        int titleFontH = board.getFontMetrics().getHeight();
+        int helpFontH=board.getFontMetrics(config.getHelpFont()).getHeight();
+        int standardFontWidth=board.getFontMetrics(config.getHelpFont()).charWidth('你');
+        int amend=(titleFontH-helpFontH);
+        FontDistribution distribution = calculateFontLocation(
+                full,
+                board.getFontMetrics(config.getHelpFont()),
+                width,
+                height,
+                config.getRowSpace(),
+                config.getColSpace(),
+                true,
+                true,
+                autoHeight,
+                false,
+                false,
+                false,
+                false);
+        x+=distribution.getWidthSpace();
+        y+=distribution.getHeightSpace()-amend;
+        y+=board.getFontMetrics().getAscent();
+        board.setColor(config.getTitleFontDefaultColor());
+        board.drawString(config.getTitleValue(),Math.max(0,x-config.getTitleProgress()),y);
+        y+=titleFontH+config.getRowSpace();
+        width=width-distribution.getWidthSpace()-standardFontWidth+2;
+        height=height-distribution.getHeightSpace()-titleFontH-helpFontH-config.getRowSpace()+2;
+        board.setFont(config.getHelpFont());
+        String str = colorFontInfo.getContext();
+        ColorfulFont handler=new ColorfulFont(colorFontInfo,config.getContextFontDefaultColor());
+        FontMetrics helpMetrics = board.getFontMetrics();
+        int n=0;
+        loop:
+        for (int j = 0; j < height; ) {
+            for (int i = 0; i < width; ) {
+                if(n>=str.length()) break loop;
+                char c = str.charAt(n);
+                if(c=='\n'){
+                    n++;
+                    break ;
+                }
+                Color fontColor = handler.getFontColor(n);
+                if(fontColor!=null) board.setColor(fontColor);
+                board.drawString(String.valueOf(c),x+i,y+j);
+                i+=helpMetrics.charWidth(c)+config.getColSpace();
+                n++;
+            }
+            j+=helpFontH+config.getRowSpace();
+        }
+        board.dispose();
+        return background;
+    }
+
+
+    /**
+     * 给予文字位置，获得该文字的颜色信息
+     */
+    static class ColorfulFont{
+        private ColorFontInfo info;
+        private List<Integer> start;
+        private List<Integer> end;
+        private List<Color> color;
+        private int s,e;
+        private Color c,nowcolor;
+        private final Color defaultColor;
+        private int size,now;
+        ColorfulFont(ColorFontInfo info,Color contextColor){
+            this.info=info;
+            this.start=info.getStart();
+            this.end=info.getEnd();
+            this.color=info.getColor();
+            this.size=info.getStart().size();
+            this.now=0;
+            defaultColor=contextColor==null?Color.BLACK:contextColor;
+            if(size>0){
+                s=start.get(now);
+                e=end.get(now);
+                c=color.get(now);
+            }else {
+                s=0;
+                e=0;
+                c=defaultColor;
+            }
+        }
+        public Color getFontColor(int location){
+            Color re=null;
+            if(nowcolor==null){
+                nowcolor=defaultColor;
+                re=defaultColor;
+            }
+            if(location==e){
+                now++;
+                if(now<size){
+                    s=start.get(now);
+                    e=end.get(now);
+                    c=color.get(now);
+                }
+                nowcolor=defaultColor;
+                re=defaultColor;
+            }
+            if(location>=s&&location<e){
+                if(c.equals(nowcolor)){
+                    return null;
+                }
+                nowcolor=c;
+                return nowcolor;
+            }
+            return re;
+        }
+    }
+
 //    /**
 //     * 核心菜单画法
 //     */
 //    public static BufferedImage drawMenu(Map<String, List<String>> menuMap, MenuImageConfig config, BufferedImage background){
 //        //todo 待完成
 //    }
+
+
+
+    /**
+     * 解析文本获得信息
+     */
+    @Data
+    static class ColorFontInfo{
+        private String context;
+        private List<Integer> start;
+        private List<Integer> end;
+        private List<Color> color;
+        ColorFontInfo(){
+            context="";
+            start=new ArrayList<>();
+            end=new ArrayList<>();
+            color=new ArrayList<>();
+        }
+    }
+    public static ColorFontInfo handleColorFont(String context){
+        ColorFontInfo colorFontInfo=new ColorFontInfo();
+        List<Integer> start = colorFontInfo.getStart();
+        List<Integer> end = colorFontInfo.getEnd();
+        List<Color> color = colorFontInfo.getColor();
+        Matcher matcher = helpMenuPattern.matcher(context);
+        while (matcher.find()){
+            int front=(matcher.group(0).length()-matcher.group(3).length())-1;
+            start.add(matcher.start(3)-front);
+            end.add(matcher.end(3)-front);
+            if(matcher.group(2)!=null){
+                String colr = matcher.group(2);
+                Matcher colorMatcher = colorPattern.matcher(colr);
+                if(numPattern.matcher(colr).matches()){
+                    color.add(new Color(Integer.parseInt(colr)));
+                }else if(colorMatcher.matches()){
+                    if(colorMatcher.group(5)!=null){
+                        color.add(new Color(Integer.parseInt(colorMatcher.group(1))
+                                ,Integer.parseInt(colorMatcher.group(2)),Integer.parseInt(colorMatcher.group(3))
+                                ,Integer.parseInt(colorMatcher.group(5))));
+                    }else {
+                        color.add(new Color(Integer.parseInt(colorMatcher.group(1))
+                                ,Integer.parseInt(colorMatcher.group(2)),Integer.parseInt(colorMatcher.group(3))));
+                    }
+
+                }else{
+                    switch (colr.toLowerCase()){
+                        case "red":
+                            color.add(Color.RED);
+                            break;
+                        case "green":
+                            color.add(Color.GREEN);
+                            break;
+                        case "yellow":
+                            color.add(Color.YELLOW);
+                            break;
+                        case "blue":
+                            color.add(Color.BLUE);
+                            break;
+                        default:
+                            log.error("不支持的颜色定义，将使用默认颜色！");
+                            color.add(DEFAULTIMPORTANTCOLOR);
+                            break;
+                    }
+                }
+            }else {
+                color.add(DEFAULTIMPORTANTCOLOR);
+            }
+            context = matcher.replaceFirst(matcher.group(3));
+            matcher=helpMenuPattern.matcher(context);
+        }
+        colorFontInfo.setContext(context);
+        return colorFontInfo;
+    }
 
     /**
      * 复制图片

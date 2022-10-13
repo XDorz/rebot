@@ -21,11 +21,13 @@ target/
 
 ### NetBeans ###
 /nbproject/private/
+**/resourse/lib/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
 build/
+!**/resourse/config/application.yml
 !**/src/main/**/build/
 !**/src/test/**/build/
 

@@ -3,6 +3,7 @@ package com.xxj.qqbot.util.botconfig.config;
 import com.xxj.qqbot.util.botconfig.functioncompent.configload.BotConfig;
 import com.xxj.qqbot.util.botconfig.functioncompent.configload.ConfigKey;
 
+import java.io.File;
 import java.util.List;
 
 @BotConfig(source = "${botpath}"+"bot.conf",variablePrefix = {"botpath=mirai.basepath.botpath"})
@@ -68,4 +69,9 @@ public class BotInfo {
      * 百度合成语音发音人
      */
     public static String voiceper;
+
+    /**
+     * 临时文件
+     */
+    public static File tempFile;
 }

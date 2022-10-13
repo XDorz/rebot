@@ -3,26 +3,28 @@ package com.xxj.qqbot.event.friendevent;
 import cn.hutool.core.img.gif.AnimatedGifEncoder;
 import cn.hutool.core.img.gif.GifDecoder;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
-import com.xxj.qqbot.util.botconfig.config.BotFrameworkConfig;
-import com.xxj.qqbot.util.botconfig.config.BotInfo;
-import com.xxj.qqbot.util.botconfig.functioncompent.ListenEvent;
 import com.xxj.qqbot.event.aop.init.BotEvents;
 import com.xxj.qqbot.event.aop.init.BotExceptionHandler;
 import com.xxj.qqbot.history.entity.YunshiDO;
 import com.xxj.qqbot.history.repo.YunshiDORepo;
 import com.xxj.qqbot.util.botconfig.config.Apis;
+import com.xxj.qqbot.util.botconfig.config.BotFrameworkConfig;
+import com.xxj.qqbot.util.botconfig.config.BotInfo;
 import com.xxj.qqbot.util.botconfig.config.Yunshi;
+import com.xxj.qqbot.util.botconfig.functioncompent.ListenEvent;
 import com.xxj.qqbot.util.botconfig.functioncompent.ListenEventAppend;
 import com.xxj.qqbot.util.common.BeastTransUtil;
+import com.xxj.qqbot.util.common.BotAudioUtil;
 import com.xxj.qqbot.util.common.BotMessageInfo;
 import com.xxj.qqbot.util.common.CommonEventToolUtil;
 import com.xxj.qqbot.util.common.ImageUploadUtil;
 import com.xxj.qqbot.util.common.ImageUtil;
 import com.xxj.qqbot.util.common.ValUtil;
+import io.github.mzdluo123.silk4j.AudioUtils;
 import io.korhner.asciimg.image.AsciiImgCache;
-import io.korhner.asciimg.image.character_fit_strategy.ColorSquareErrorFitStrategy;
 import io.korhner.asciimg.image.character_fit_strategy.StructuralSimilarityFitStrategy;
 import io.korhner.asciimg.image.converter.AsciiToImageConverter;
 import net.mamoe.mirai.contact.Friend;
@@ -36,6 +38,7 @@ import net.mamoe.mirai.message.data.Image;
 import net.mamoe.mirai.message.data.ImageType;
 import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.message.data.MessageChainBuilder;
+import net.mamoe.mirai.message.data.OfflineAudio;
 import net.mamoe.mirai.message.data.PlainText;
 import net.mamoe.mirai.message.data.QuoteReply;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,11 +54,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 
 @BotEvents
-public class GroupEvent implements BotExceptionHandler {
+public class GroupEvent implements BotExceptionHandler{
 
     @Autowired
     private YunshiDORepo yunshiDORepo;
@@ -70,11 +72,11 @@ public class GroupEvent implements BotExceptionHandler {
 
     @ListenEvent(startWith = "运势",quoteReply = true,waitMessage = "少女折寿中...",needWait = true)
     public void yunshi(GroupMessageEvent event, MessageChainBuilder builder){
-        YunshiDO yunshiDO = yunshiDORepo.findAllByQqIdAndExpireTimeAfter(event.getSender().getId(), new Date());
-        if (yunshiDO!=null){
-            builder.append(Image.fromId(yunshiDO.getImageId()));
-            return;
-        }
+//        YunshiDO yunshiDO = yunshiDORepo.findAllByQqIdAndExpireTimeAfter(event.getSender().getId(), new Date());
+//        if (yunshiDO!=null){
+//            builder.append(Image.fromId(yunshiDO.getImageId()));
+//            return;
+//        }
         Yunshi.Fortune fortune = ValUtil.getRandomVal(Yunshi.fortunes);
         File file = ValUtil.getRandomVal(Yunshi.genshinBasic);
         String key = file.getName().replace(".png", "").replace("2","").replace("3","");
@@ -265,6 +267,18 @@ public class GroupEvent implements BotExceptionHandler {
         MessageReceipt<Member> receipt = event.getSender().sendMessage(forwardBuilder.build());
         receipt.recallIn(BotInfo.r18RecallTime*1000);
         event.getSubject().sendMessage("太色啦>_<，已经私发你了，注意查看私聊哦~~~");
+    }
+
+    @ListenEvent(startWith = "test",autoSend =false)
+    public void saxPics (MessageChainBuilder builder, GroupMessageEvent event,BotMessageInfo info) throws IOException {
+        String value = ImageUploadUtil.getHttpValue(Apis.kuwoApi+info.getParams().getWithoutThrow("param1"));
+        int i = value.lastIndexOf("http");
+        value=value.substring(i,value.length()-1);
+        HttpRequest request = HttpUtil.createGet(value);
+        InputStream inputStream = request.execute().bodyStream();
+        File file = AudioUtils.mp3ToSilk(inputStream,300000);
+        OfflineAudio audio = BotAudioUtil.upLoad(file, event.getGroup());
+        event.getGroup().sendMessage(audio);
     }
 
     @Override

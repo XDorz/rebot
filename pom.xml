@@ -33,6 +33,7 @@
         <jsoup.version>1.15.2</jsoup.version>
         <hutool.version>5.8.5</hutool.version>
         <chinese_util.version>1.0</chinese_util.version>
+        <silk4j.version>1.2-dev</silk4j.version>
     </properties>
 
     <dependencies>

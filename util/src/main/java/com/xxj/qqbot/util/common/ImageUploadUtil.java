@@ -22,6 +22,16 @@ public class ImageUploadUtil {
 
     private static Random random=new Random(System.currentTimeMillis());
 
+    private static Pattern urlPtn=Pattern.compile("(http[^±━ ]+)");
+
+    public static String getUrlRealVal(String url){
+        Matcher matcher = urlPtn.matcher(url);
+        if(matcher.find()){
+            return matcher.group(1);
+        }
+        return url;
+    }
+
     /**
      * 解决部分网络接口返回网址带其他分隔符号问题
      */
@@ -32,12 +42,7 @@ public class ImageUploadUtil {
         request.setMaxRedirectCount(10);
         HttpResponse response = request.execute();
         String body = response.body();
-        Pattern pattern=Pattern.compile("(http[^±━ ]+)");
-        Matcher matcher = pattern.matcher(body);
-        if(matcher.find()){
-            return matcher.group(1);
-        }
-        return null;
+        return getUrlRealVal(body);
     }
 
     /**

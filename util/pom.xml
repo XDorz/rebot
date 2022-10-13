@@ -55,5 +55,13 @@
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
         </dependency>
+        <!--  silkdecoder      -->
+        <dependency>
+            <groupId>io.github.mzdluo123</groupId>
+            <artifactId>silk4j</artifactId>
+            <version>${silk4j.version}</version>
+            <scope>system</scope>
+            <systemPath>${pom.basedir}/../web/src/main/resources/lib/silk4j-1.2-dev.jar</systemPath>
+        </dependency>
     </dependencies>
 </project>
