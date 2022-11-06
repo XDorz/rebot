@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.xxj.qqbot.util.botconfig.config.BotFrameworkConfig;
+import com.xxj.qqbot.util.botconfig.functioncompent.configload.image.AutoReloadImage;
+import com.xxj.qqbot.util.botconfig.functioncompent.configload.image.ImageElePointer;
 import com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload.BotRegister;
 import com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload.DefaultEventConfig;
 import com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload.EnvLoad;
@@ -12,6 +14,7 @@ import com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload.EnvPre
 import com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload.EventDefaultConfig;
 import com.xxj.qqbot.util.common.ConfigLoaderUtil;
 import com.xxj.qqbot.util.common.ImageUploadUtil;
+import com.xxj.qqbot.util.common.ImageUtil;
 import com.xxj.qqbot.util.common.MoriBotException;
 import com.xxj.qqbot.util.common.ValUtil;
 import lombok.Data;
@@ -22,6 +25,8 @@ import net.mamoe.mirai.contact.NormalMember;
 import net.mamoe.mirai.event.events.GroupMessageEvent;
 import net.mamoe.mirai.message.data.At;
 import net.mamoe.mirai.message.data.Image;
+import net.mamoe.mirai.message.data.MessageChainBuilder;
+import net.mamoe.mirai.message.data.PlainText;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
@@ -29,6 +34,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -36,6 +42,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,6 +67,9 @@ public class BotFrameworkConfigLoad {
     @Autowired
     Environment environment;
 
+    @Autowired
+    AutoReloadImage autoReloadImage;
+
     private static ApplicationContext context;
 
     private static Pattern helpValPattern=Pattern.compile("\\$\\{[^\\{]+\\}");
@@ -73,6 +83,9 @@ public class BotFrameworkConfigLoad {
     public static final String ADMINISTRATOR="administrator";
 
     public static final String GLOBALBANNED="globalBanned";
+
+    public static final String MENUADMIN="ADMINISTRATOR_";
+    public static final String MENUNORMAL="NORMAL_";
 
     @Autowired
     private void setContext(ApplicationContext applicationContext){
@@ -150,11 +163,14 @@ public class BotFrameworkConfigLoad {
         BotFrameworkConfig.bot.getEventChannel().subscribeAlways(GroupMessageEvent.class,event -> {
             String context=ValUtil.getMessageContext(event.getMessage());
             boolean global=false;
-            if(context.startsWith("全局")||context.startsWith("global")){
+            if(context.startsWith("全局 ")||context.startsWith("global ")){
                 global=true;
-                context=context.replace("全局","").replace("global","").trim();
+                context=context.replace("全局 ","").replace("global ","").trim();
             }
             if (context.startsWith("添加管理")||context.startsWith("addAdministrator")){
+                if(!BotFrameworkConfig.basicListenConfig.isEnableAdminGive()){
+                    return;
+                }
                 if(BotFrameworkConfig.rootId.equals(event.getSender().getId())){
                     List<At> administrator = ValUtil.getAtExceptBot(event.getMessage());
                     if(administrator!=null&&administrator.size()!=0){
@@ -179,6 +195,9 @@ public class BotFrameworkConfigLoad {
                     return;
                 }
             }else if(context.startsWith("移除管理")||context.startsWith("删除管理")||context.startsWith("removeAdministrator")){
+                if(!BotFrameworkConfig.basicListenConfig.isEnableAdminGive()){
+                    return;
+                }
                 if(BotFrameworkConfig.rootId.equals(event.getSender().getId())){
                     List<At> administrator = ValUtil.getAtExceptBot(event.getMessage());
                     if(administrator!=null&&administrator.size()!=0){
@@ -202,15 +221,18 @@ public class BotFrameworkConfigLoad {
                     event.getSubject().sendMessage("非常抱歉，您无此权限！");
                     return;
                 }
-            }else if(context.endsWith("on")||context.endsWith("ON")||context.startsWith("打开")||context.startsWith("开启")){
+            }else if(context.endsWith(" on")||context.endsWith(" ON")||context.startsWith("打开 ")||context.startsWith("开启 ")){
+                if(!BotFrameworkConfig.basicListenConfig.isEnableFunctionSwitch()){
+                    return;
+                }
                 Long id = event.getSender().getId();
                 if(!global&&!BotFrameworkConfig.administrators.contains(id)){
                     event.getSubject().sendMessage("非常抱歉，您无权限！");
                     return;
                 }
                 //打开群功能
-                context = context.replaceFirst("打开", "").replaceFirst("开启", "");
-                context=context.replace("on","").replace("ON","").trim();
+                context = context.replaceFirst("打开 ", "").replaceFirst("开启 ", "");
+                context=context.replace(" on","").replace(" ON","").trim();
                 if(!BotFrameworkConfig.blackList.containsKey(context)){
                     event.getSubject().sendMessage("我倒，没有找到要打开的功能¿?请检查输入的功能名称~");
                     return;
@@ -227,15 +249,18 @@ public class BotFrameworkConfigLoad {
                 Long groupId = event.getSubject().getId();
                 writeBanedList(context,groupId,true);
                 event.getSubject().sendMessage("「"+context+"」功能已打开！");
-            }else if(context.endsWith("off")||context.endsWith("OFF")||context.startsWith("关闭")||context.startsWith("停用")){
+            }else if(context.endsWith(" off")||context.endsWith(" OFF")||context.startsWith("关闭 ")||context.startsWith("停用 ")){
+                if(!BotFrameworkConfig.basicListenConfig.isEnableFunctionSwitch()){
+                    return;
+                }
                 Long id = event.getSender().getId();
                 if(!global&&!BotFrameworkConfig.administrators.contains(id)){
                     event.getSubject().sendMessage("非常抱歉，您无权限！");
                     return;
                 }
                 //关闭群功能
-                context = context.replaceFirst("关闭", "").replaceFirst("停用", "");
-                context=context.replace("off","").replace("OFF","").trim();
+                context = context.replaceFirst("关闭 ", "").replaceFirst("停用 ", "");
+                context=context.replace(" off","").replace(" OFF","").trim();
                 if(!BotFrameworkConfig.blackList.containsKey(context)){
                     event.getSubject().sendMessage("我倒，没有找到要关闭的功能¿?请检查输入的功能名称~");
                     return;
@@ -252,22 +277,170 @@ public class BotFrameworkConfigLoad {
                 Long groupId = event.getSubject().getId();
                 writeBanedList(context,groupId,false);
                 event.getSubject().sendMessage("「"+context+"」功能已关闭！");
-            }else if(context.endsWith("--help")||context.endsWith("help")||context.endsWith("帮助")){
+            }else if(context.endsWith(" --help")||context.endsWith(" help")||context.endsWith(" 帮助")||context.startsWith("帮助 ")){
+                if(!BotFrameworkConfig.basicListenConfig.isEnableHelperListen()){
+                    return;
+                }
                 //帮助菜单
-                context=context.replace("--help","").replace("help","").replace("帮助","");
-                Image cacheImage = BotFrameworkConfig.cacheHelperImage.get(context);
-                if(cacheImage!=null){
-                    event.getSubject().sendMessage(cacheImage);
-                    return;
-                }
+                context=context.replace("--help","").replace("help","").replace("帮助","").trim();
                 String helpVal = BotFrameworkConfig.functionHelp.get(context);
-                if(helpVal==null){
-                    event.getSubject().sendMessage("没有名为「"+context+"」的功能或者该功能未设置介绍");
+                if(!StringUtils.hasText(helpVal)){
+                    event.getSubject().sendMessage("没有名为『"+context+"』的功能或者该功能未设置介绍");
                     return;
                 }
-                //todo 分析，绘制，上传
+                List<Image> images=null;
+                if(BotFrameworkConfig.basicListenConfig.isEnableHelperCache()){
+                    if(BotFrameworkConfig.cacheHelperImage.get(context)==null){
+                        images=getHelperImage(helpVal);
+                        BotFrameworkConfig.cacheHelperImage.put(context,images);
+                        for (int i = 0; i < images.size(); i++) {
+                            try {
+                                ImageElePointer pointer=new ImageElePointer(BotFrameworkConfig.class.getField("cacheHelperImage"),
+                                        context,i,images.get(i).getImageId(),null);
+                                autoReloadImage.putNewPointer(pointer);
+                            } catch (NoSuchFieldException e) {
+                                log.error("框架出错！！！无法找到帮助图像缓存的field！请在项目下留言反馈或耐心等待新版本！！！",e);
+                            }
+                        }
+                    }else {
+                        images=BotFrameworkConfig.cacheHelperImage.get(context);
+                    }
+                }else {
+                    images=getHelperImage(helpVal);
+                }
+                MessageChainBuilder builder=new MessageChainBuilder();
+                if(images==null || images.size()<1){
+                    event.getSubject().sendMessage("该『"+context+"』功能设置错误！！");
+                    return;
+                }
+                for (Image image : images) {
+                    builder.append(image);
+                    builder.append(new PlainText("\n"));
+                }
+                event.getSubject().sendMessage(builder.build());
+            }else if(context.equalsIgnoreCase("menu")||context.equals("菜单")||context.equals("功能")||context.equalsIgnoreCase("function")){
+                if(!BotFrameworkConfig.basicListenConfig.isEnableMenuListen()){
+                    return;
+                }
+                Long id = event.getSender().getId();
+                Long groupId=event.getSubject().getId();
+                boolean isComplete=BotFrameworkConfig.administrators.contains(id);
+                Set<String> keySet = BotFrameworkConfig.menu.keySet();
+                Image menuImage=null;
+                try {
+                    if(BotFrameworkConfig.basicListenConfig.isEnableMenuCache()){
+                        if(isComplete){
+                            if((menuImage=BotFrameworkConfig.menuCache.get(MENUADMIN+groupId))==null){
+                                menuImage=ImageUploadUtil.upload(
+                                        ImageUtil.drawMenu(
+                                            getFunctionMenu(groupId,isComplete,keySet),
+                                            BotFrameworkConfig.menuImageConfig,
+                                            ImageIO.read(ValUtil.getRandomVal(BotFrameworkConfig.menuImageConfig.getMenuBackground())
+                                        )));
+                                BotFrameworkConfig.menuCache.put(MENUADMIN+groupId,menuImage);
+                            }
+                        }else{
+                            if((menuImage=BotFrameworkConfig.menuCache.get(MENUNORMAL+groupId))==null){
+                                menuImage=ImageUploadUtil.upload(
+                                        ImageUtil.drawMenu(
+                                                getFunctionMenu(groupId,isComplete,keySet),
+                                                BotFrameworkConfig.menuImageConfig,
+                                                ImageIO.read(ValUtil.getRandomVal(BotFrameworkConfig.menuImageConfig.getMenuBackground())
+                                                )));
+                                BotFrameworkConfig.menuCache.put(MENUNORMAL+groupId,menuImage);
+                            }
+                        }
+                    }else {
+                        menuImage=ImageUploadUtil.upload(
+                                ImageUtil.drawMenu(
+                                        getFunctionMenu(groupId,isComplete,keySet),
+                                        BotFrameworkConfig.menuImageConfig,
+                                        ImageIO.read(ValUtil.getRandomVal(BotFrameworkConfig.menuImageConfig.getMenuBackground())
+                                        )));
+                    }
+                    event.getSubject().sendMessage(menuImage);
+                }catch (IOException e){
+                    throw new MoriBotException("无法读取配置的菜单背景文件！！！",e);
+                }
+            }else if(context.equalsIgnoreCase("update menu") || context.equalsIgnoreCase("update all menu") ||
+                    context.equals("更新菜单")||context.equals("更新全部菜单")){
+                if(!BotFrameworkConfig.basicListenConfig.isEnableMenuCache()){
+                    return;
+                }
+                Set<String> keySet = BotFrameworkConfig.menu.keySet();
+                try {
+                    Collection<Group> deals=new ArrayList<>();
+                    if(context.contains("all") || context.contains("全部")){
+                        long id = event.getSender().getId();
+                        if(!BotFrameworkConfig.rootId.equals(id)){
+                            event.getSubject().sendMessage("非常抱歉，您无此权限！！！");
+                            return;
+                        }
+                        deals=BotFrameworkConfig.bot.getGroups();
+                    }else {
+                        deals=Collections.singleton(event.getSubject());
+                    }
+                    for (Group group : deals) {
+                        Long groupId=group.getId();
+                        Image adminMenu = ImageUploadUtil.upload(
+                                ImageUtil.drawMenu(
+                                        getFunctionMenu(groupId, true, keySet),
+                                        BotFrameworkConfig.menuImageConfig,
+                                        ImageIO.read(ValUtil.getRandomVal(BotFrameworkConfig.menuImageConfig.getMenuBackground())
+                                        )));
+                        Image normalMenu = ImageUploadUtil.upload(
+                                ImageUtil.drawMenu(
+                                        getFunctionMenu(groupId, true, keySet),
+                                        BotFrameworkConfig.menuImageConfig,
+                                        ImageIO.read(ValUtil.getRandomVal(BotFrameworkConfig.menuImageConfig.getMenuBackground())
+                                        )));
+                        BotFrameworkConfig.menuCache.put(MENUADMIN+groupId,adminMenu);
+                        BotFrameworkConfig.menuCache.put(MENUNORMAL+groupId,normalMenu);
+                    }
+                    event.getSubject().sendMessage("菜单已更新！");
+                }catch (IOException e){
+                    throw new MoriBotException("无法读取配置的菜单背景文件！！！",e);
+                }
             }
         });
+
+        //todo 对friendEvent做出监听！！！
+    }
+
+    public static Map<String,List<String>> getFunctionMenu(Long groupId,boolean completeShow,Set<String> keySet){
+        Map<String,List<String>> functionMenu=new HashMap<>();
+        for (String s : keySet) {
+            List<String> functions=new ArrayList<>();
+            for (String name : BotFrameworkConfig.menu.get(s)) {
+                boolean banned=false;
+                boolean globalBanned=false;
+                if(BotFrameworkConfig.globalBanned.contains(name)){
+                    globalBanned=true;
+                }else {
+                    if(BotFrameworkConfig.blackListName.contains(name)){
+                        banned=BotFrameworkConfig.blackList.get(name).contains(groupId);
+                    }else {
+                        banned=!BotFrameworkConfig.whiteList.get(name).contains(groupId);
+                    }
+                }
+                if(globalBanned || banned){
+                    if(globalBanned){
+                        name="("+ImageUtil.globalBanned+"){"+name+"}";
+                    }else if(banned){
+                        name="("+ImageUtil.banned+"){"+name+"}";
+                    }
+                    if(completeShow){
+                        functions.add(name);
+                    }
+                }else {
+                    functions.add(name);
+                }
+            }
+            if(functions.size()>0){
+                functionMenu.put(s,functions);
+            }
+        }
+        return functionMenu;
     }
 
     /**
@@ -376,76 +549,147 @@ public class BotFrameworkConfigLoad {
     /**
      * 解析功能帮助内容
      */
-//    private static List<Image> getHelperImage(String helpVal)throws MoriBotException{
-//        Matcher matcher = helpValPattern.matcher(helpVal);
-//        String key=null;
-//        if(matcher.find()){
-//            String holderKey = matcher.group();
-//            helpVal=helpVal.replace(holderKey,"");
-//            holderKey=holderKey.replace("${","").replace("}","");
-//            int i=-1;
-//            Object val=null;
-//            if((i=holderKey.indexOf('.'))!=-1){
-//                val=BotFrameworkConfig.injectedFieldHolder.get(holderKey.substring(0,i));
-//                key=holderKey.substring(i+1);
-//            }else {
-//                val=BotFrameworkConfig.injectedFieldHolder.get(holderKey);
-//            }
-//            //单引用情况
-//            if(helpVal.trim().equals("")) return getHelperImage(val,key);
-//        }else {
-//            //纯文字情况
-//            return getHelperImage(helpVal,null);
-//        }
-//        if (matcher.find()){
-//            //二次引用情况，前一次为背景板，后一次为文字内容
-//
-//        }else {
-//            //单次引用配合文字情况
-//            return getHelperImage()
-//        }
-//        //todo 三次及以上引用不考虑
-//    }
+    private static List<Image> getHelperImage(String helpVal)throws MoriBotException{
+        Matcher matcher = helpValPattern.matcher(helpVal);
+        String key=null;
+        if(matcher.find()){
+            String holderKey = matcher.group();
+            helpVal=helpVal.replace(holderKey,"").trim();
+            holderKey=holderKey.replace("${","").replace("}","");
+            int i=-1;
+            Object val=null;
+            if((i=holderKey.indexOf('%'))!=-1){
+                val=BotFrameworkConfig.injectedFieldHolder.get(holderKey.substring(0,i));
+                key=holderKey.substring(i+1);
+            }else {
+                val=BotFrameworkConfig.injectedFieldHolder.get(holderKey);
+            }
+            if(val==null){
+                val=holderKey;
+            }else {
+                try {
+                    val=((Field)val).get(null);
+                } catch (IllegalAccessException e) {
+                    throw new MoriBotException("无法获取help对应属性的值！！！",e);
+                }
+            }
+            Object helperObj = getHelperObj(val, key);
+            if (matcher.find()){
+                //前一个为文字内容，//后一个为背景图片
+                String backgroundKey = matcher.group();
+                helpVal=helpVal.replace(backgroundKey,"").trim();
+                backgroundKey=backgroundKey.replace("${","").replace("}","");
+                int j=-1;
+                Object bval=null;
+                String bkey=null;
+                if((j=backgroundKey.indexOf('%'))!=-1){
+                    bval=BotFrameworkConfig.injectedFieldHolder.get(backgroundKey.substring(0,j));
+                    bkey=backgroundKey.substring(j+1);
+                }else {
+                    bval=BotFrameworkConfig.injectedFieldHolder.get(backgroundKey);
+                }
+                if(bval==null){
+                    bval=backgroundKey;
+                }else {
+                    try {
+                        bval=((Field)bval).get(null);
+                    } catch (IllegalAccessException e) {
+                        throw new MoriBotException("无法获取help对应属性的值！！！",e);
+                    }
+                }
+                Object backgroundObj = getHelperObj(bval, bkey);
+                if(!StringUtils.hasText(helpVal)){
+                    return parseImage(helperObj,getBackground(backgroundObj));
+                }
+                return parseImage(helperObj+helpVal,getBackground(backgroundObj));
+            }else {
+                //单引用情况
+                if(!StringUtils.hasText(helpVal)){
+                    return parseImage(helperObj,null);
+                }
+                return parseImage(helperObj+helpVal,null);
+            }
+        }else {
+            //纯文字情况
+            Object helperObj = getHelperObj(helpVal, null);
+            return parseImage(helperObj,null);
+        }
 
-    //todo 完善helper
-    private static List<Image> getHelperImage(Object obj, String key) throws MoriBotException {
-        if(obj==null) throw new MoriBotException("获取的帮助为空，请检查是否为key错误或者目标属性未曾正常注入！！！");
+        //三次以上引用及递归,嵌套不考虑
+    }
+
+    private static Object getHelperObj(Object obj, String key) throws MoriBotException {
+        if(obj==null) throw new MoriBotException("获取的帮助/背景图 为空，请检查是否为key错误或者目标属性未曾正常注入！！！");
         if(obj instanceof Map){
             if(!StringUtils.hasText(key)){
-                throw new MoriBotException("所给值为map但未规定key，请使用${fieldName.keyName}来确定key");
+                throw new MoriBotException("所给值为map但未规定key，请使用${fieldName%keyName}来确定key");
             }
             int i=-1;
-            if((i=key.indexOf('.'))!=-1){
+            if((i=key.indexOf('%'))!=-1){
                 //map内为list情况
-                String type=key.substring(i+1);
+                String innerKey=key.substring(i+1);
                 key=key.substring(0,i);
-                return getHelperImage(((Map) obj).get(key),type);
+                return getHelperObj(((Map) obj).get(key),innerKey);
             }else {
                 //map内为非集合情况
-                return getHelperImage(((Map) obj).get(key),null);
+                return getHelperObj(((Map) obj).get(key),null);
             }
         }else if(obj instanceof List){
-            if(!StringUtils.hasText(key)&&!key.equals("random")&&!key.equals("first")&&!key.equals("all")){
-                throw new MoriBotException("所给值为list但未规定使用类型，请使用${fieldName.type}  type:[random,first,all]");
+            if(key==null) { return ((List)obj).get(0);}
+            if(!StringUtils.hasText(key) && !key.equalsIgnoreCase("random")
+                    && !key.equalsIgnoreCase("first") && !key.equalsIgnoreCase("all")){
+                throw new MoriBotException("所给值为list但未规定使用类型，请使用${fieldName%type}  type:[random,first,all]");
             }
-            if(key.equals("random")){
-                return parseImage(ValUtil.getRandomVal((List)obj));
-            }else if(key.equals("first")){
-                return parseImage(((List)obj).get(0));
-            }else if(key.equals("all")){
-                return parseImage(obj);
+            if(key.equalsIgnoreCase("random")){
+                return ValUtil.getRandomVal((List)obj);
+            }else if(key.equalsIgnoreCase("first")){
+                return ((List)obj).get(0);
+            }else if(key.equalsIgnoreCase("all")){
+                return obj;
             }
         }else{
-            return parseImage(obj);
+            return obj;
         }
         return null;
     }
 
-//    private static List<BufferedImage> getBackground(Object obj) throws MoriBotException{
-//        //todo 待完成，获取背景板
-//    }
+    private static List<BufferedImage> getBackground(Object obj){
+        if(obj==null) return null;
+        if(obj instanceof File){
+            File fobj = (File) obj;
+            if(!fobj.exists()) {
+                throw new MoriBotException("要求的本地背景图片文件不存在！");
+            }
+            try {
+                return Collections.singletonList(ImageIO.read((File) obj));
+            }catch (IOException e){
+                throw new MoriBotException("无法读取图片文件！",e);
+            }
+        }else if(obj instanceof BufferedImage){
+            return Collections.singletonList((BufferedImage) obj);
+        }else if(obj instanceof String){
+            File file=new File(obj.toString());
+            if(file.exists()){
+                try{
+                    return Collections.singletonList(ImageIO.read(file));
+                }catch (IOException e){
+                    throw new MoriBotException("无法读取图片文件！",e);
+                }
+            }
+        }else if(obj instanceof List){
+            List list = (List) obj;
+            List<BufferedImage> images=new ArrayList<>();
+            for (Object o : list) {
+                images.addAll(getBackground(o));
+            }
+            return images;
+        }else {
+            throw new MoriBotException("不支持的背景图片类型，File,BufferedImage,FileUrl,包含以上类型的List等");
+        }
+        return null;
+    }
 
-    private static List<Image> parseImage(Object obj) throws MoriBotException{
+    private static List<Image> parseImage(Object obj,List<BufferedImage> backgrounds) throws MoriBotException{
         if(obj==null) return null;
         if(obj instanceof File){
             return Collections.singletonList(ImageUploadUtil.upload((File) obj));
@@ -454,22 +698,29 @@ public class BotFrameworkConfigLoad {
         }else if(obj instanceof Image){
             return Collections.singletonList((Image) obj);
         }else if(obj instanceof String){
-            File file=new File((String) obj);
-            if(file.exists()) return Collections.singletonList(ImageUploadUtil.upload(file));
-
-            //todo 绘制
-
+            File file=new File(obj.toString());
+            if(file.exists()) {
+                return Collections.singletonList(ImageUploadUtil.upload(file));
+            }
+            try{
+                return Collections.singletonList(ImageUploadUtil.upload(ImageUtil.drawHelp(obj.toString(),
+                        BotFrameworkConfig.helpImageConfig,
+                        backgrounds==null?
+                                ImageIO.read(ValUtil.getRandomVal(BotFrameworkConfig.helpImageConfig.getHelpBackground())):
+                                ValUtil.getRandomVal(backgrounds))));
+            }catch (IOException e){
+                throw new MoriBotException("无法读取设定的默认背景图片文件！",e);
+            }
         }else if(obj instanceof List){
             List list = (List) obj;
             List<Image> images=new ArrayList<>();
             for (Object o : list) {
-                images.addAll(parseImage(o));
+                images.addAll(parseImage(o,backgrounds));
             }
             return images;
         }else {
-            throw new MoriBotException("不支持的自定义帮助图片发送属性，要求属性类型：被配置文件加载模块注入的String(file path)，Image，BufferedImage，File 或 Map，List泛型包含上述类型的集合");
+            throw new MoriBotException("不支持的帮助图片属性，File,BufferedImage,FileUrl,帮助文字信息 或 Map，List等泛型包含上述类型的集合");
         }
-        return null;
     }
 
     /**
@@ -511,7 +762,7 @@ public class BotFrameworkConfigLoad {
 
 
     /**
-     * 初始化图像缓存设置并赋值
+     * 初始化默认值
      */
     private static void initDefaultEventConfig() throws
             NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
@@ -534,6 +785,12 @@ public class BotFrameworkConfigLoad {
         BotFrameworkConfig.forwardDisplay=eventConfig.generateForwardDisplay();
         BotFrameworkConfig.helpImageConfig=eventConfig.generateHelpImageConfig();
         BotFrameworkConfig.menuImageConfig=eventConfig.generateMenuImageConfig();
+        BotFrameworkConfig.basicListenConfig=eventConfig.generateBasicListen();
         BotFrameworkConfig.appendListenerListenTimeMinute=eventConfig.generateAppendListenerListenTimeMinute();
+        File file = eventConfig.generateTempFile();
+        if(!file.exists()){
+            file.mkdirs();
+        }
+        BotFrameworkConfig.tempFile=file;
     }
 }

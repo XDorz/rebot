@@ -6,11 +6,11 @@ import com.xxj.qqbot.util.botconfig.functioncompent.configload.ConfigKey;
 import java.io.File;
 import java.util.List;
 
-@BotConfig(source = "${botpath}"+"bot.conf",variablePrefix = {"botpath=mirai.basepath.botpath"})
+@BotConfig(source = "${${botpath}}"+"bot.conf",variablePrefix = {"botpath=mirai.basepath.botpath"})
 public class BotInfo {
 
     @ConfigKey(name = "account")
-    @BotConfig(source = "${botpath}"+"account.txt")
+    @BotConfig(source = "${${botpath}}"+"account.txt")
     public static Long botId;
 
     public static String botName;
@@ -19,25 +19,25 @@ public class BotInfo {
 
     public static String verifyAddFriend;
 
-    @BotConfig(source = "${botpath}"+"account.txt")
+    @BotConfig(source = "${${botpath}}"+"account.txt")
     public static Long account;
 
-    @BotConfig(source = "${botpath}"+"account.txt")
+    @BotConfig(source = "${${botpath}}"+"account.txt")
     public static String password;
 
-    @BotConfig(source = "${botpath}"+"account.txt")
+    @BotConfig(source = "${${botpath}}"+"account.txt")
     public static Long rootId;
 
-    @BotConfig(source = "${botpath}"+"account.txt")
+    @BotConfig(source = "${${botpath}}"+"account.txt")
     public static String heartBeatingType;
 
-    @BotConfig(source = "${botpath}"+"group.conf")
+    @BotConfig(source = "${${botpath}}"+"group.conf")
     public static List<Long> listeningGroups;
 
-    @BotConfig(source = "${botpath}"+"sexGroup.conf")
+    @BotConfig(source = "${${botpath}}"+"sexGroup.conf")
     public static List<Long> sexGroups;
 
-    @BotConfig(source = "${botpath}"+"manager.conf")
+    @BotConfig(source = "${${botpath}}"+"manager.conf")
     public static List<Long> managers;
 
     public static Integer r18RecallTime;

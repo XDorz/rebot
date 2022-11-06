@@ -12,6 +12,8 @@ public class EnvNameConstant {
 
     public static final String BOT_PATH="${mirai.basepath.botpath}";
 
+    public static final String BAKGROUND_PATH="${mirai.basepath.background}";
+
     public static final String IMAGE_PATH="${mirai.basepath.image}";
 
     public static final String MINESWEEPER="${mirai.basepath.minesweeper}";

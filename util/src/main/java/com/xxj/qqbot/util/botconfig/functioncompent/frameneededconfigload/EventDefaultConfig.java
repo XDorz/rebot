@@ -2,11 +2,12 @@ package com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload;
 
 import com.xxj.qqbot.util.botconfig.functioncompent.HelpImageConfig;
 import com.xxj.qqbot.util.botconfig.functioncompent.MenuImageConfig;
+import lombok.Data;
 import net.mamoe.mirai.message.data.ForwardMessage;
 import net.mamoe.mirai.message.data.RawForwardMessage;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
+import java.io.File;
 
 /**
  * botEvent事件的默认设置
@@ -113,5 +114,41 @@ public interface EventDefaultConfig {
      */
     default int generateAppendListenerListenTimeMinute(){
         return 5;
+    }
+
+    /**
+     * 临时文件位置
+     */
+    default File generateTempFile(){
+        return new File(System.getProperty("user.dir")+"/tempFile");
+    }
+
+    /**
+     * 框架基础监听服务配置
+     */
+    default BasicListen generateBasicListen(){
+        return BasicListen.getInstance();
+    }
+    @Data
+    static class BasicListen{
+        boolean enableHelperListen;
+        boolean enableMenuListen;
+        boolean enableFunctionSwitch;
+        boolean enableAdminGive;
+        boolean enableMenuCache;
+        boolean enableHelperCache;
+
+        public BasicListen(){
+            this.enableMenuListen=true;
+            this.enableFunctionSwitch=true;
+            this.enableHelperListen=true;
+            this.enableAdminGive=true;
+            this.enableHelperCache=true;
+            this.enableMenuCache=true;
+        }
+
+        public static BasicListen getInstance(){
+            return new BasicListen();
+        }
     }
 }

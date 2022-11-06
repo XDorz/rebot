@@ -1,6 +1,6 @@
 package com.xxj.qqbot.util.botconfig.functioncompent.configload;
 
-import com.xxj.qqbot.util.constant.BotConfigTypeEnum;
+import com.xxj.qqbot.util.botconfig.config.constant.BotConfigTypeEnum;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -29,6 +29,11 @@ public @interface BotConfig {
      * 作为spring环境的前缀
      */
     String[] variablePrefix() default {};
+
+    /**
+     * 标注在属性上时是否使用父类的路径
+     */
+    boolean[] useClassPrefix() default {};
 
     /**
      * 多行配置视为一项

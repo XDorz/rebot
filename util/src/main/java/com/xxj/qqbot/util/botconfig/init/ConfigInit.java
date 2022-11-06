@@ -10,7 +10,7 @@ import com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload.*;
 import com.xxj.qqbot.util.common.ConfigLoaderUtil;
 import com.xxj.qqbot.util.common.MoriBotException;
 import com.xxj.qqbot.util.common.MoriException;
-import com.xxj.qqbot.util.constant.BotConfigTypeEnum;
+import com.xxj.qqbot.util.botconfig.config.constant.BotConfigTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -32,7 +32,6 @@ import java.util.regex.Pattern;
 
 /**
  * 为所有标有 BotConfig 的类的属性赋值
- * 框架中最优先初始化
  */
 @Slf4j
 @Component
@@ -54,7 +53,6 @@ public class ConfigInit {
     private void init(){
         //初始化图片缓存默认配置信息
         //当读取到图片config时需要确认默认配置
-        //所以置于此处
         try {
             initDefaultImageConfig();
         } catch (Exception e) {
@@ -67,6 +65,7 @@ public class ConfigInit {
             BotConfig clazzAnno = clazz.getAnnotation(BotConfig.class);
             Image clazzImage = clazz.getAnnotation(Image.class);
             PathUrl clazzPathUrl = clazz.getAnnotation(PathUrl.class);
+            boolean useClassPrefix= clazzAnno.useClassPrefix().length > 0 && clazzAnno.useClassPrefix()[0];
             boolean classSavePath= clazzPathUrl != null && clazzPathUrl.saveFilePath();
             Map<String, String> reflexMap = getReflexMap(clazzAnno);
             String path = analysisPath(clazzAnno, reflexMap, clazz.getName() + ":");
@@ -103,6 +102,13 @@ public class ConfigInit {
                 }
                 if (botConfig!=null){
                     String fieldPath = analysisPath(botConfig, reflexMap, clazz.getName() + "---" + field.getName() + ":");
+                    if(botConfig.useClassPrefix().length>0){
+                        if(botConfig.useClassPrefix()[0]){
+                            fieldPath=path+fieldPath;
+                        }
+                    }else if(useClassPrefix){
+                        fieldPath=path+fieldPath;
+                    }
                     if(!StringUtils.hasText(fieldPath)){
                         log.error(clazz.getName()+"---"+field.getName()+ ":指定的路径解析为空，请检查！");
                     }
@@ -288,7 +294,12 @@ public class ConfigInit {
         Matcher matcher = pattern.matcher(path);
         while (matcher.find()){
             String val=matcher.group(1);
-            if(reflex.containsKey(val)) val=reflex.get(val);
+            if(reflex.containsKey(val)) {
+                val=reflex.get(val);
+                path=matcher.replaceFirst(val);
+                matcher=pattern.matcher(path);
+                continue;
+            }
             //由于"\"符号会被转义，故需要替换为"\\"
             String enval="";
             if((enval=environment.getProperty(val))==null){
@@ -729,7 +740,7 @@ public class ConfigInit {
     }
 
     /**
-     * 将要赋值的属性置入队列
+     * 将要赋值的图片属性置入队列
      * 留待bot初始化完成之后赋值
      *
      * @param path              上传图片的本地路径

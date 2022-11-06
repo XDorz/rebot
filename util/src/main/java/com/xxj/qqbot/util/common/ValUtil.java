@@ -3,6 +3,7 @@ package com.xxj.qqbot.util.common;
 import com.xxj.qqbot.util.botconfig.config.BotFrameworkConfig;
 import com.xxj.qqbot.util.botconfig.functioncompent.ListenEvent;
 import net.mamoe.mirai.message.data.*;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -164,7 +165,7 @@ public class ValUtil {
 
     public static String getName(Method method){
         ListenEvent listenEvent = method.getAnnotation(ListenEvent.class);
-        if(!listenEvent.alias().equals("")){
+        if(StringUtils.hasText(listenEvent.alias())){
             return listenEvent.alias();
         }
         if(listenEvent.startWith().length!=0){

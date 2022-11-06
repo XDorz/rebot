@@ -1,4 +1,4 @@
-package com.xxj.qqbot.event.friendevent;
+package com.xxj.qqbot.event.event;
 
 import com.xxj.qqbot.event.aop.init.BotEvents;
 import com.xxj.qqbot.util.botconfig.config.BotFrameworkConfig;

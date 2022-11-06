@@ -4,21 +4,28 @@ import cn.hutool.core.io.FileUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.xxj.qqbot.util.botconfig.config.BotFrameworkConfig;
 import com.xxj.qqbot.util.common.ImageUploadUtil;
+import com.xxj.qqbot.util.common.ImageUtil;
 import lombok.extern.slf4j.Slf4j;
 import net.mamoe.mirai.message.data.Image;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
 public class AutoReloadImage {
 
-    private List<ImageElePointer> newPointers;
+    private List<ImageElePointer> newPointers=new ArrayList<>();
 
     private Map<String,ImageCacheJson> jsonMap;
 
@@ -45,7 +52,7 @@ public class AutoReloadImage {
                         //当中有list
                         Map<String,List> tarMap = (Map<String,List>)field.get(null);
                         Class<?> type = tarMap.get(pointer.getKey()).get(pointer.getLocation()).getClass();
-                        Object obj = parseVal(pointer.getPath(), type);
+                        Object obj = parseVal(pointer, type);
                         tarMap.get(pointer.getKey()).set(pointer.getLocation(),obj);
                         field.set(null,tarMap);
                         putNewPointer(pointer);
@@ -54,7 +61,7 @@ public class AutoReloadImage {
                         //当中没有list
                         Map<String,Object> tarMap = (Map<String,Object>)field.get(null);
                         Class<?> type = tarMap.get(pointer.getKey()).getClass();
-                        Object obj = parseVal(pointer.getPath(), type);
+                        Object obj = parseVal(pointer, type);
                         tarMap.put(pointer.getKey(),obj);
                         field.set(null,tarMap);
                         putNewPointer(pointer);
@@ -66,14 +73,14 @@ public class AutoReloadImage {
                         //List
                         List list=(List) field.get(null);
                         Class<?> type = list.get(pointer.getLocation()).getClass();
-                        Object obj = parseVal(pointer.getPath(), type);
+                        Object obj = parseVal(pointer, type);
                         list.set(pointer.getLocation(),obj);
                         putNewPointer(pointer);
                         updateCacheData(pointer,obj);
                     }else {
                         //String
                         Class<?> type = field.get(null).getClass();
-                        Object obj = parseVal(pointer.getPath(), type);
+                        Object obj = parseVal(pointer, type);
                         field.set(null,obj);
                         putNewPointer(pointer);
                         updateCacheData(pointer,obj);
@@ -84,7 +91,7 @@ public class AutoReloadImage {
             }
         }
         ImageHolder.holder.set(ImageHolder.updateOrder,newPointers);
-        newPointers=null;
+        newPointers=new ArrayList<>();
         if(needUpdate){
             FileUtil.writeString(JSONObject.toJSONString(jsonMap),BotFrameworkConfig.botImageCacheFile,StandardCharsets.UTF_8);
         }
@@ -92,18 +99,29 @@ public class AutoReloadImage {
         ImageHolder.updateOrder=getCycleNum(ImageHolder.updateOrder,1);
     }
 
-    public <T> T parseVal(String path,Class<T> clazz){
+    public <T> T parseVal(ImageElePointer pointer,Class<T> clazz){
         if(Image.class.isAssignableFrom(clazz)){
-            return (T) ImageUploadUtil.upload(path);
+            if(pointer.getPath()!=null){
+                return (T) ImageUploadUtil.upload(pointer.getPath());
+            }else if(pointer.getImageId()!=null) {
+                InputStream imageStream = ImageUtil.getStreamFromImage(pointer.getImageId());
+                Image image = ImageUploadUtil.upload(imageStream);
+                return (T) image;
+            }
         }else if(String.class.isAssignableFrom(clazz)){
-            return (T) ImageUploadUtil.uploadForId(path);
-        }else {
-            log.error("未知的缓存类型"+clazz.getCanonicalName()+"！！！\n" +
-                    "可使用的缓存类型：\n" +
-                    "1."+ClassTypeConstant.IMAGE+"\n" +
-                    "2."+ClassTypeConstant.STRING+"\n");
-            return null;
+            if(pointer.getPath()!=null){
+                return (T) ImageUploadUtil.uploadForId(pointer.getPath());
+            } else if(pointer.getImageId()!=null){
+                InputStream imageStream = ImageUtil.getStreamFromImage(pointer.getImageId());
+                Image image = ImageUploadUtil.upload(imageStream);
+                return (T) image.getImageId();
+            }
         }
+        log.error("未知的缓存类型"+clazz.getCanonicalName()+"！！！\n" +
+                "可使用的缓存类型：\n" +
+                "1."+ClassTypeConstant.IMAGE+"\n" +
+                "2."+ClassTypeConstant.STRING+"\n");
+        return null;
     }
 
     /**
@@ -126,7 +144,7 @@ public class AutoReloadImage {
     /**
      * 将pointer置入新的顺序中
      */
-    private void putNewPointer(ImageElePointer pointer){
+    public void putNewPointer(ImageElePointer pointer){
         int i=getCycleNum(ImageHolder.updateOrder,pointer.getCacheDay());
         if(i==ImageHolder.updateOrder){
             newPointers.add(pointer);
@@ -139,6 +157,9 @@ public class AutoReloadImage {
      * 更新本地图片缓存
      */
     private void updateCacheData(ImageElePointer pointer,Object obj){
+        if(pointer.getJsonKey()==null){
+            return;
+        }
         needUpdate=true;
         String id=null;
         if(obj instanceof Image){
@@ -163,7 +184,6 @@ public class AutoReloadImage {
      * 初始化属性
      */
     private void initComponent(){
-        newPointers=new ArrayList<>();
         if(BotFrameworkConfig.botImageCacheFile!=null){
             if(!BotFrameworkConfig.botImageCacheFile.exists()){
                 log.warn("未找到图像缓存文件，将重新创建！");

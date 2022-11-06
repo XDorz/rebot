@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.xxj.qqbot.util.botconfig.functioncompent.HelpImageConfig;
 import com.xxj.qqbot.util.botconfig.functioncompent.MenuImageConfig;
 import com.xxj.qqbot.util.botconfig.functioncompent.configload.image.ImageCacheConf;
+import com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload.EventDefaultConfig;
 import com.xxj.qqbot.util.botconfig.init.ScheduleTaskConfig;
 import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.event.AbstractEvent;
@@ -14,20 +15,13 @@ import net.mamoe.mirai.message.data.Image;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 机器人核心配置中心
@@ -149,6 +143,16 @@ public class BotFrameworkConfig {
     public static Map<String,List<String>> menu=new HashMap<>();
 
     /**
+     * 使用黑名单的功能
+     */
+    public static Set<String> blackListName=new HashSet<>();
+
+    /**
+     * 主菜单图片缓存
+     */
+    public static Map<String,Image> menuCache=new HashMap<>();
+
+    /**
      * 功能帮助
      */
     public static Map<String,String> functionHelp=new HashMap<>();
@@ -156,7 +160,7 @@ public class BotFrameworkConfig {
     /**
      * 采用懒加载模式，不进行持久化缓存
      */
-    public static Map<String, Image> cacheHelperImage=new HashMap<>();
+    public static Map<String, List<Image>> cacheHelperImage=new HashMap<>();
 
     /**
      * 管理员ids
@@ -199,9 +203,19 @@ public class BotFrameworkConfig {
     public static MenuImageConfig menuImageConfig;
 
     /**
+     * 基础监听选择开关
+     */
+    public static EventDefaultConfig.BasicListen basicListenConfig;
+
+    /**
      * 拓展事件监听表
      */
     public static Map<String, Method> appendEvent=new HashMap<>();
+
+    /**
+     * 临时文件存放位置
+     */
+    public static File tempFile;
 
     /**
      * 拓展监听方法map

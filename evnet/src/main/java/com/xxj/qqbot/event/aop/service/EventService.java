@@ -52,7 +52,7 @@ public class EventService {
     @Pointcut("execution(* com.xxj.qqbot.event..*(..)) && (@annotation(com.xxj.qqbot.util.botconfig.functioncompent.ListenEvent)||@annotation(com.xxj.qqbot.util.botconfig.functioncompent.ListenEventAppend))")
     public void  tar(){}
 
-    private static Pattern skipMsgPattern=Pattern.compile("(on$|ON$|off$|OFF$|打开|开启|关闭|停用|^全局|^global|help$|帮助$)");
+    private static Pattern skipMsgPattern=Pattern.compile("( on$| ON$| off$| OFF$|^打开 |^开启 |^关闭 |^停用 |^全局 |^global |help$| 帮助$|^帮助 )");
 
     @Autowired
     ApplicationContext context;
@@ -227,9 +227,6 @@ public class EventService {
             }
         }
 
-        //todo 帮助模块
-
-
         //注入BotMessageInfo
         if(messageInfo!=null) messageInfo.setVal(ValUtil.getMessageInfo(message,messageContext));
 
@@ -237,12 +234,16 @@ public class EventService {
         if(builder==null) builder=new MessageChainBuilder();
         if(quoteReply) builder.append(new QuoteReply(event.getSource()));
         if(info.needWait()) event.getSubject().sendMessage(info.waitMessage());
-        if(atSender) builder.append(new At(event.getSender().getId()));
+        if(atSender) builder.append(new At(event.getSender().getId())).append(new PlainText(" "));
         Object proceed = joinPoint.proceed();
-        if(!info.appendToken().equals("")&&!proceed.equals(false)) addAppendEvent(info.appendToken(),proceed,(AbstractEvent) event);
+        if(!info.appendToken().equals("") && !proceed.equals(false) && !proceed.equals(ListeningStatus.STOPPED)){
+            addAppendEvent(info.appendToken(),proceed,(AbstractEvent) event);
+        }
         if(!autoSend) return proceed;
         if(proceed!=null){
-            if(proceed instanceof Message){
+            if(!info.appendToken().equals("")){
+
+            }else if(proceed instanceof Message){
                 builder.append((Message) proceed);
             }else if(proceed instanceof String){
                 builder.append((String)proceed);
@@ -322,12 +323,12 @@ public class EventService {
                     obj[i]=new MessageChainBuilder();
                 }else if(BotMessageInfo.class.isAssignableFrom(parameterType)){
                     obj[i]=new BotMessageInfo();
-                }else if(parameterType.isAssignableFrom(Object.class)){
-                    obj[i]=proceed;
                 }else if(List.class.isAssignableFrom(parameterType)){
                     obj[i]=new ArrayList<>();
                 }else if(Map.class.isAssignableFrom(parameterType)){
                     obj[i]=new HashMap<>();
+                }else if(parameterType.isAssignableFrom(Object.class)){
+                    obj[i]=proceed;
                 }else {
                     try {
                         obj[i]=parameterType.getDeclaredConstructor().newInstance();
@@ -350,6 +351,11 @@ public class EventService {
                     BotFrameworkConfig.appendEventListener.get(uuid).complete();
                     return;
                 }else if(result.equals(true)||result.equals(ListeningStatus.LISTENING)){
+                    return;
+                }
+                //如果该拓展监听器需要含有下一个拓展监听，则结束这个监听，前提是不返回true或者listening
+                if(append.appendToken().equals("")){
+                    BotFrameworkConfig.appendEventListener.get(uuid).complete();
                     return;
                 }
                 //如果返回值是可被加入messageChainBuilder的任何一种，则视为结束拓展事件，结束监听

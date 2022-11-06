@@ -12,10 +12,12 @@ import com.xxj.qqbot.util.common.MoriBotException;
 import com.xxj.qqbot.util.common.ValUtil;
 import lombok.extern.slf4j.Slf4j;
 import net.mamoe.mirai.event.AbstractEvent;
+import net.mamoe.mirai.event.events.GroupMessageEvent;
 import net.mamoe.mirai.message.data.MessageChainBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.InvocationTargetException;
@@ -43,6 +45,7 @@ public class InitEvent {
     private void init(){
         if(!BotFrameworkConfig.enableListenEvent) return;
         log.info("将所有监听事件注册入监听事件链");
+        boolean blackType = BotFrameworkConfig.blackListType;
         List<Class<?>> classes = ConfigLoaderUtil.fetchAnnoClass(BotEvents.class);
         for (Class<?> clazz : classes) {
             //从ioc容器中取出bean
@@ -65,26 +68,40 @@ public class InitEvent {
                 ListenEvent eventMethod=null;
                 if((eventMethod=method.getAnnotation(ListenEvent.class))==null) continue;
 
+                boolean isGroupEvent=false;
+                for (Class<?> type : method.getParameterTypes()) {
+                    if(GroupMessageEvent.class.isAssignableFrom(type)){
+                        isGroupEvent=true;
+                    }
+                }
                 //如果功能注明native的话将不为其附加帮助功能与黑白名单功能
                 //因其可能为监听戳一戳，加好友等无需注明的功能
-                if(!(eventMethod.isNative().length!=0&& eventMethod.isNative()[0])){
+                if(isGroupEvent && !(eventMethod.isNative().length!=0 && eventMethod.isNative()[0])){
                     String name = ValUtil.getName(method);
                     String functionType=eventMethod.type();
                     String help = eventMethod.help();
-                    if(functionType.equals("")) functionType="基础功能";
+                    if((eventMethod.blackListType().length==0 && blackType) ||
+                            (eventMethod.blackListType().length!=0 && eventMethod.blackListType()[0])){
+                        BotFrameworkConfig.blackListName.add(name);
+                    }
+                    if(functionType.equals("")) functionType="基础";
                     if(!BotFrameworkConfig.blackList.containsKey(name)){
                         BotFrameworkConfig.blackList.put(name,new HashSet<>());
                     }
                     if(!BotFrameworkConfig.whiteList.containsKey(name)){
                         BotFrameworkConfig.whiteList.put(name,new HashSet<>());
                     }
-                    if(!help.equals("")) BotFrameworkConfig.functionHelp.put(name,help);
-                    if(BotFrameworkConfig.menu.containsKey(functionType)){
-                        BotFrameworkConfig.menu.get(functionType).add(name);
-                    }else {
-                        List<String> list=new ArrayList<>();
-                        list.add(name);
-                        BotFrameworkConfig.menu.put(functionType,list);
+                    if(StringUtils.hasText(help)){
+                        BotFrameworkConfig.functionHelp.put(name,help);
+                    }
+                    if(!eventMethod.menuExclude()){
+                        if(BotFrameworkConfig.menu.containsKey(functionType)){
+                            BotFrameworkConfig.menu.get(functionType).add(name);
+                        }else {
+                            List<String> list=new ArrayList<>();
+                            list.add(name);
+                            BotFrameworkConfig.menu.put(functionType,list);
+                        }
                     }
                 }
 

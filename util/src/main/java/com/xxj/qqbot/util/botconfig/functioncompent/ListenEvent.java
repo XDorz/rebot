@@ -56,11 +56,12 @@ public @interface ListenEvent {
 
 
 
+
     //帮助模块
     /**
-     * 功能描述
+     * 排除出主菜单
      */
-    String desc() default "";
+    boolean menuExclude() default false;
 
     /**
      * 功能归类类型
@@ -116,7 +117,7 @@ public @interface ListenEvent {
     boolean[] autoSend() default {};
 
     /**
-     * 是否启用黑名单模式
+     * 该功能是否启用黑名单模式
      * 选择否将使用白名单模式
      */
     boolean[] blackListType() default {};

@@ -150,7 +150,7 @@ public class ImageUploadUtil {
      */
     public static Image uploadAntiKill(BufferedImage bufferedImage){
         bufferedImage.setRGB(1,1,random.nextInt(1694498560));
-        bufferedImage.setRGB(4,4,random.nextInt(1694498560));
+//        bufferedImage.setRGB(4,4,random.nextInt(1694498560));
         return upload(bufferedImage);
     }
 

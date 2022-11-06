@@ -8,9 +8,9 @@ public class ClassTypeConstant {
 
     public static final String STRING="java.lang.String";
 
-    public static final String LONG="java.awt.image.BufferedImage";
+    public static final String LONG="java.lang.Long";
 
-    public static final String INTEGER="java.lang.Long";
+    public static final String INTEGER="java.lang.Integer";
 
     public static final String FILE="java.io.File";
 

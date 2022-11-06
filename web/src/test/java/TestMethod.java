@@ -1,10 +1,10 @@
-
 import cn.hutool.core.img.ImgUtil;
 import cn.hutool.core.io.FileUtil;
 import com.luhuiguo.chinese.ChineseUtils;
 import com.luhuiguo.chinese.pinyin.PinyinFormat;
 import com.luhuiguo.chinese.pinyin.ToneType;
 import com.xxj.qqbot.util.botconfig.functioncompent.HelpImageConfig;
+import com.xxj.qqbot.util.botconfig.functioncompent.MenuImageConfig;
 import com.xxj.qqbot.util.common.BeastTransUtil;
 import com.xxj.qqbot.util.common.ImageUtil;
 import org.junit.Test;
@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -30,11 +31,180 @@ public class TestMethod {
     private static Pattern pattern=Pattern.compile("\\[.+$");
 
     @Test
+    public void testmenu() throws IOException {
+        MenuImageConfig config=MenuImageConfig.DEFAULT;
+        Map<String,List<String>> map=new HashMap<>(){
+            {
+                put("common",new ArrayList<>(){
+                    {
+                        add("运势");
+                        add("今日疫情");
+                        add("游戏理解");
+                        add("出装推荐");
+                        add("电影音频--天猫");
+                        add("(111,35,48){淘宝双十一特价}");
+                        add("今日天气情况");
+                        add("(114514){计算器}");
+                        add("空调机箱");
+                        add("每日胡说");
+                        add("古诗");
+                        add("网易云热评");
+                        add("青年大学习");
+                        add("签到");
+                        add("语录");
+                        add("算二十四点");
+                        add("微博热搜");
+                        add("订阅推送");
+                        add("金币查看");
+                        add("权限管理");
+                        add("用户登录");
+                        add("戳一戳");
+                        add("搜图");
+                        add("点歌");
+                        add("消息撤回");
+                        add("信息统计");
+                        add("(red){开箱}");
+                        add("看视频");
+                        add("词云");
+                        add("每日一句");
+                        add("{整点报时}");
+                        add("转发消息构造");
+                        add("简繁转换");
+                        add("兽音译者");
+                        add("(green){一起听歌}");
+                        add("猜成语");
+                        add("扫码");
+                        add("内存清理");
+                        add("歌词查询");
+                        add("翻译");
+                        add("最近的大事");
+                        add("(10,30,60){世界时间}");
+                        add("号码归属地查询");
+                        add("网络连接");
+                    }
+                });
+
+                put("一些工具",new ArrayList<>(){
+                    {
+                        add("电影音频--天猫");
+                        add("淘宝双十一特价");
+                        add("今日天气情况");
+                        add("计算器");
+                        add("空调机箱");
+                        add("每日胡说");
+                        add("古诗");
+                        add("网易云热评");
+                    }
+                });
+
+                put("有趣的东西",new ArrayList<>(){
+                    {
+                        add("古今大事");
+                        add("漂流瓶");
+                        add("神评");
+                        add("机器猫");
+                    }
+                });
+
+                put("挂！",new ArrayList<>(){
+                    {
+                        add("飞天");
+                        add("遁地");
+                    }
+                });
+
+                put("飞雷神",new ArrayList<>(){
+                    {
+                        add("运势");
+                        add("今日疫情");
+                        add("游戏理解");
+                        add("出装推荐");
+                        add("电影音频--天猫");
+                        add("淘宝双十一特价");
+                        add("今日天气情况");
+                        add("计算器");
+                        add("空调机箱");
+                        add("每日胡说");
+                        add("古诗");
+                        add("网易云热评");
+                    }
+                });
+
+                put("好好学习",new ArrayList<>(){
+                    {
+                        add("网易云热评");
+                        add("青年大学习");
+                        add("签到");
+                        add("语录");
+                        add("算二十四点");
+                        add("微博热搜");
+                        add("订阅推送");
+                        add("金币查看");
+                        add("权限管理");
+                        add("用户登录");
+                        add("戳一戳");
+                        add("搜图");
+                        add("点歌");
+                        add("消息撤回");
+                        add("信息统计");
+                        add("开箱");
+                        add("看视频");
+                        add("词云");
+                    }
+                });
+
+//                put("天天向上",new ArrayList<>(){
+//                    {
+//                        add("网易云热评");
+//                        add("青年大学习");
+//                        add("签到");
+//                        add("语录");
+//                        add("算二十四点");
+//                        add("微博热搜");
+//                        add("订阅推送");
+//                        add("金币查看");
+//                        add("权限管理");
+//                        add("每日一句");
+//                        add("{整点报时}");
+//                        add("转发消息构造");
+//                        add("简繁转换");
+//                        add("兽音译者");
+//                        add("(125,125,25){一起听歌}");
+//                        add("猜成语");
+//                        add("扫码");
+//                        add("用户登录");
+//                        add("戳一戳");
+//                        add("搜图");
+//                        add("点歌");
+//                        add("消息撤回");
+//                        add("信息统计");
+//                        add("开箱");
+//                        add("看视频");
+//                        add("词云");
+//                        add("翻译");
+//                        add("最近的大事");
+//                        add("世界时间");
+//                        add("号码归属地查询");
+//                        add("网络连接");
+//                    }
+//                });
+            }
+        };
+        config.setTipFont("宋体",20);
+//        config.setThrowExpWhileOverflow(false);
+        config.setMenuBlockOffset(true);
+        BufferedImage back = ImageIO.read(new File("C:\\Users\\谢昕捷\\Desktop\\workspace\\source\\background\\menu\\2.png"));
+        BufferedImage result = ImageUtil.drawMenu(map,config, back);
+        ImageIO.write(result,"png",new File(System.getProperty("user.home") + "/desktop/result.png"));
+    }
+
+    @Test
     public void testhelp() throws IOException {
-        String val="指令：运势\n该指令返回一张我的妈呀怎么才能让他填满呢我真的是服了哈哈哈(114514){今日运势图}，多次(yellow){重复输入}请求图片不变\n该功能每日{零点刷新}!";
+        String val="(125,125,78,50){指令}：运势\n该指令返回一张我的妈呀怎么才能让他填满呢我真的是服了哈哈哈(114514){今日运势图}，多次（yellow）{重复输入}请求图片不变\n该功能每日{零点刷新}!";
         HelpImageConfig config = HelpImageConfig.DEFAULT;
         config.setX(30);
-        config.setAutoHeight(true);
+        config.setY(0);
+        config.setAutoHeight(false);
         BufferedImage back = ImageIO.read(new File(System.getProperty("user.home") + "/desktop/input.png"));
         BufferedImage result = ImageUtil.drawHelp(val, config, back);
         ImageIO.write(result,"png",new File(System.getProperty("user.home") + "/desktop/result.png"));
@@ -189,10 +359,10 @@ public class TestMethod {
      */
     @Test
     public void cut() throws Exception{
-        File file=new File("c:\\Users\\谢昕捷\\Desktop\\workspace\\source\\buluearchive\\background");
-        String sc="c:\\Users\\谢昕捷\\Desktop\\workspace\\source\\buluearchive\\cutbackground\\";
-        int width=1180;
-        int height=1080;
+        File file=new File("C:\\Users\\谢昕捷\\Desktop\\a\\");
+        String sc="C:\\Users\\谢昕捷\\Desktop\\b\\";
+        int width=1440;
+        int height=1440;
         for (File inFile : file.listFiles()) {
             BufferedImage image = ImageIO.read(inFile);
             Rectangle rectangle = new Rectangle();

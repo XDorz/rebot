@@ -220,9 +220,8 @@ public class ConfigLoaderUtil{
                             //无则将文件名（去除文件后缀名）作为map的key
                             if(prefix!=null){
                                 if(isMultiLine){
-                                    if(isHead){
+                                    if(!isHead){
                                         valBuilder.append("\n");
-                                        isHead=false;
                                     }
                                     valBuilder.append(val);
                                 }else {
@@ -253,12 +252,16 @@ public class ConfigLoaderUtil{
                             }
                             map.put(prefix,list);
                             if(!value.equals("")&&isMultiLine){
-                                valBuilder.append(val);
+                                valBuilder.append(value);
                                 isHead=false;
                             }else if(!value.equals("")){
                                 list.add(value);
                             }
                         }
+                    }
+                    String value=null;
+                    if(valBuilder!=null && !(value=valBuilder.toString()).equals("") && map.containsKey(prefix)){
+                        map.get(prefix).add(value);
                     }
                 }
             } catch (IOException e) {

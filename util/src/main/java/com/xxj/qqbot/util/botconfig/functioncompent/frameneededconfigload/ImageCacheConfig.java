@@ -1,7 +1,6 @@
 package com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload;
 
 import com.xxj.qqbot.util.botconfig.functioncompent.configload.EnableBotConfigScan;
-import com.xxj.qqbot.util.constant.BotConfigTypeEnum;
 
 import java.util.concurrent.TimeUnit;
 

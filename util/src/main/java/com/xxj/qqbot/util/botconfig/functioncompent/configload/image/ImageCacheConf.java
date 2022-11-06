@@ -2,7 +2,7 @@ package com.xxj.qqbot.util.botconfig.functioncompent.configload.image;
 
 import com.xxj.qqbot.util.botconfig.config.BotFrameworkConfig;
 import com.xxj.qqbot.util.botconfig.functioncompent.configload.Image;
-import com.xxj.qqbot.util.constant.BotConfigTypeEnum;
+import com.xxj.qqbot.util.botconfig.config.constant.BotConfigTypeEnum;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 

@@ -3,7 +3,6 @@ package com.xxj.qqbot.util.botconfig.init;
 import com.xxj.qqbot.util.botconfig.config.BotInfo;
 import com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload.BotRegister;
 import com.xxj.qqbot.util.botconfig.functioncompent.frameneededconfigload.EnvPrefix;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.BotFactory;

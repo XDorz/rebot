@@ -1,4 +1,4 @@
-package com.xxj.qqbot.util.constant;
+package com.xxj.qqbot.util.botconfig.config.constant;
 
 public enum BotConfigTypeEnum {
 

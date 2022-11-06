@@ -21,6 +21,14 @@
     <name>rebot</name>
     <description>mirai_core_framework</description>
 
+<!--    <repositories>-->
+<!--        <repository>-->
+<!--            <id>central-repos1</id>-->
+<!--            <name>Central Repository 2</name>-->
+<!--            <url>https://repo1.maven.org/maven2/</url>-->
+<!--        </repository>-->
+<!--    </repositories>-->
+
     <properties>
         <java.version>11</java.version>
         <mirai.version>2.12.3</mirai.version>
@@ -81,17 +89,17 @@
             <artifactId>mirai-core-jvm</artifactId>
             <version>${mirai.version}</version>
         </dependency>
-        <dependency>
-            <groupId>net.mamoe</groupId>
-            <artifactId>mirai-core-all</artifactId>
-            <version>${mirai.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>net.mamoe</groupId>
-                    <artifactId>net.mamoe:mirai-login-solver-selenium:1.0-dev-17</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>net.mamoe</groupId>-->
+<!--            <artifactId>mirai-core-all</artifactId>-->
+<!--            <version>${mirai.version}</version>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <groupId>net.mamoe</groupId>-->
+<!--                    <artifactId>net.mamoe:mirai-login-solver-selenium:1.0-dev-17</artifactId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
         <!--    fastjson    -->
         <dependency>
             <groupId>com.alibaba</groupId>

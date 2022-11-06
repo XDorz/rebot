@@ -1,9 +1,8 @@
-package com.xxj.qqbot.event.friendevent;
+package com.xxj.qqbot.event.event;
 
 import cn.hutool.core.img.gif.AnimatedGifEncoder;
 import cn.hutool.core.img.gif.GifDecoder;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import com.xxj.qqbot.event.aop.init.BotEvents;
@@ -14,20 +13,23 @@ import com.xxj.qqbot.util.botconfig.config.Apis;
 import com.xxj.qqbot.util.botconfig.config.BotFrameworkConfig;
 import com.xxj.qqbot.util.botconfig.config.BotInfo;
 import com.xxj.qqbot.util.botconfig.config.Yunshi;
+import com.xxj.qqbot.util.botconfig.config.constant.EventFunctionType;
 import com.xxj.qqbot.util.botconfig.functioncompent.ListenEvent;
 import com.xxj.qqbot.util.botconfig.functioncompent.ListenEventAppend;
 import com.xxj.qqbot.util.common.BeastTransUtil;
-import com.xxj.qqbot.util.common.BotAudioUtil;
 import com.xxj.qqbot.util.common.BotMessageInfo;
 import com.xxj.qqbot.util.common.CommonEventToolUtil;
 import com.xxj.qqbot.util.common.ImageUploadUtil;
 import com.xxj.qqbot.util.common.ImageUtil;
 import com.xxj.qqbot.util.common.ValUtil;
-import io.github.mzdluo123.silk4j.AudioUtils;
+import com.xxj.qqbot.util.music.MusicInfo;
+import com.xxj.qqbot.util.music.MusicSource;
+import com.xxj.qqbot.util.music.QQSource;
 import io.korhner.asciimg.image.AsciiImgCache;
 import io.korhner.asciimg.image.character_fit_strategy.StructuralSimilarityFitStrategy;
 import io.korhner.asciimg.image.converter.AsciiToImageConverter;
 import net.mamoe.mirai.contact.Friend;
+import net.mamoe.mirai.contact.Group;
 import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.event.AbstractEvent;
 import net.mamoe.mirai.event.events.GroupMessageEvent;
@@ -38,7 +40,6 @@ import net.mamoe.mirai.message.data.Image;
 import net.mamoe.mirai.message.data.ImageType;
 import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.message.data.MessageChainBuilder;
-import net.mamoe.mirai.message.data.OfflineAudio;
 import net.mamoe.mirai.message.data.PlainText;
 import net.mamoe.mirai.message.data.QuoteReply;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 @BotEvents
@@ -70,13 +72,13 @@ public class GroupEvent implements BotExceptionHandler{
 
     private static AsciiToImageConverter defaultConverter=new AsciiToImageConverter(defaultFontCache, new StructuralSimilarityFitStrategy());
 
-    @ListenEvent(startWith = "运势",quoteReply = true,waitMessage = "少女折寿中...",needWait = true)
+    @ListenEvent(startWith = "运势",quoteReply = true,waitMessage = "少女折寿中...",needWait = true,help = "${commonHelp%运势}",alias = "运势")
     public void yunshi(GroupMessageEvent event, MessageChainBuilder builder){
-//        YunshiDO yunshiDO = yunshiDORepo.findAllByQqIdAndExpireTimeAfter(event.getSender().getId(), new Date());
-//        if (yunshiDO!=null){
-//            builder.append(Image.fromId(yunshiDO.getImageId()));
-//            return;
-//        }
+        YunshiDO yunshiDO = yunshiDORepo.findAllByQqIdAndExpireTimeAfter(event.getSender().getId(), new Date());
+        if (yunshiDO!=null){
+            builder.append(Image.fromId(yunshiDO.getImageId()));
+            return;
+        }
         Yunshi.Fortune fortune = ValUtil.getRandomVal(Yunshi.fortunes);
         File file = ValUtil.getRandomVal(Yunshi.genshinBasic);
         String key = file.getName().replace(".png", "").replace("2","").replace("3","");
@@ -115,7 +117,7 @@ public class GroupEvent implements BotExceptionHandler{
         yunshiDORepo.save(yunshiBuilder.build());
     }
 
-    @ListenEvent(startWith = "cos",quoteReply = false,atSender = true,forwardMessage = true)
+    @ListenEvent(startWith = "cos",quoteReply = false,forwardMessage = true,alias = "cos",help = "${指令：cos [发送图的数量]\n最多支持发送五张图片}",type = EventFunctionType.sex)
     public void cos(GroupMessageEvent event, MessageChainBuilder builder, BotMessageInfo info){
         String num = info.getParams().getOrDefault("param1", "1");
         int sendNum = Math.min(Integer.parseInt(num),15);
@@ -128,16 +130,15 @@ public class GroupEvent implements BotExceptionHandler{
         }
     }
 
-    @ListenEvent(startWith = "5k",quoteReply = false)
+    @ListenEvent(startWith = "5k",quoteReply = false,alias = "5k",help = "${commonHelp%fiveK}")
     public void FiveK(MessageChainBuilder builder,GroupMessageEvent event,BotMessageInfo info){
         String top = info.getParams().get("param1");
         String buttom=info.getParams().get("param2");
-        event.getSubject().sendMessage("开始请求api");
         HttpResponse response = HttpUtil.createGet(MessageFormat.format(Apis.fivekApi, top, buttom)).execute();
         builder.append(ImageUploadUtil.upload(response.bodyStream()));
     }
 
-    @ListenEvent(startWith = "兽语",appendToken = "兽语",quoteReply = false,alias = "兽音译者")
+    @ListenEvent(startWith = "兽语",appendToken = "兽语",quoteReply = false,alias = "兽音译者",help = "${toolHelp%兽语}",type = EventFunctionType.tool)
     public Integer beast(MessageChainBuilder builder, GroupMessageEvent event,BotMessageInfo info){
         String context = ValUtil.getMessageContext(event.getMessage());
         String[] split = context.split(" ");
@@ -170,8 +171,48 @@ public class GroupEvent implements BotExceptionHandler{
         return false;
     }
 
-    @ListenEvent(startWith = "抽象",appendToken = "抽象")
-    public Object abs (MessageChainBuilder builder, GroupMessageEvent event,BotMessageInfo info) throws IOException {
+    @ListenEvent(startWith = "涩图",blackListType = false,needWait = true,autoSend = false,waitMessage = "少女折寿中...",type = EventFunctionType.sex,help = "${sexHelp%涩图}${helpSpecial}")
+    public void sexPic (GroupMessageEvent event,BotMessageInfo info){
+        List<MessageChain> sexPicMessages = CommonEventToolUtil.getSexPicWithoutInfo(info, false,BotInfo.maxPic);
+        if(sexPicMessages==null){
+            event.getSubject().sendMessage("搜索无结果，换个关键词/标签 试试吧~");
+            return;
+        }
+        ForwardMessageBuilder builder=new ForwardMessageBuilder(event.getSender());
+        builder.setDisplayStrategy(BotFrameworkConfig.forwardDisplay);
+        for (MessageChain sexPicMessage : sexPicMessages) {
+            builder.add(event.getSender(),sexPicMessage);
+        }
+        MessageReceipt<Group> receipt = event.getSubject().sendMessage(builder.build());
+        receipt.recallIn(BotInfo.r18RecallTime*1000);
+    }
+
+    @ListenEvent(startWith = "色图",autoSend = false,blackListType = false,type = EventFunctionType.sex,help = "${sexHelp%色图}${helpSpecial}")
+    public void saxPic (MessageChainBuilder builder, GroupMessageEvent event,BotMessageInfo info) throws IOException {
+        Friend friend = BotFrameworkConfig.bot.getFriend(event.getSender().getId());
+        if (friend==null){
+            builder.append(new QuoteReply(event.getSource()));
+            builder.append("对不起，你现在还不是"+ BotInfo.bname+"的好友，快加上好友一起看色图吧，别忘了好友验证填『"+BotInfo.verifyAddFriend+"』哦~");
+            event.getSubject().sendMessage(builder.build());
+            return;
+        }
+        List<MessageChain> sexPicMessages = CommonEventToolUtil.getSexPic(info, true,BotInfo.maxPic);
+        if(sexPicMessages==null){
+            event.getSubject().sendMessage("搜索无结果，换个关键词/标签 试试吧~");
+            return;
+        }
+        ForwardMessageBuilder forwardBuilder=new ForwardMessageBuilder(event.getSender());
+        forwardBuilder.setDisplayStrategy(BotFrameworkConfig.forwardDisplay);
+        for (MessageChain sexPicMessage : sexPicMessages) {
+            forwardBuilder.add(event.getSender(),sexPicMessage);
+        }
+        MessageReceipt<Member> receipt = event.getSender().sendMessage(forwardBuilder.build());
+        receipt.recallIn(BotInfo.r18RecallTime*1000);
+        event.getSubject().sendMessage("太色啦>_<，已经私发你了，注意查看私聊哦~~~");
+    }
+
+    @ListenEvent(startWith = "抽象",appendToken = "抽象",help = "${commonHelp%抽象}")
+    public Object asciiArt (MessageChainBuilder builder, GroupMessageEvent event,BotMessageInfo info) throws IOException {
         String size = info.getParams().getWithoutThrow("param1");
         AsciiToImageConverter asciiConverter=defaultConverter;
         if(size!=null){
@@ -197,7 +238,7 @@ public class GroupEvent implements BotExceptionHandler{
     }
 
     @ListenEventAppend(token = "抽象",quoteReply = false,maxListenTimeMinute = 2)
-    public Object absAppend (MessageChainBuilder builder, GroupMessageEvent event,Object obj,BotMessageInfo info) throws IOException{
+    public Object asciiArtAppend (MessageChainBuilder builder, GroupMessageEvent event,Object obj,BotMessageInfo info) throws IOException{
         if(obj instanceof Integer) return false;
         if(!info.hasImage()) return false;
         if(obj instanceof AsciiToImageConverter){
@@ -230,55 +271,23 @@ public class GroupEvent implements BotExceptionHandler{
         return false;
     }
 
-    @ListenEvent(startWith = "涩图",blackListType = false,needWait = true,autoSend = false,waitMessage = "少女折寿中...")
-    public void sexPic (GroupMessageEvent event,BotMessageInfo info){
-        List<MessageChain> sexPicMessages = CommonEventToolUtil.getSexPicWithoutInfo(info, false,BotInfo.maxPic);
-        if(sexPicMessages==null){
-            event.getSubject().sendMessage("搜索无结果，换个关键词/标签 试试吧~");
-            return;
-        }
-        ForwardMessageBuilder builder=new ForwardMessageBuilder(event.getSender());
-        builder.setDisplayStrategy(BotFrameworkConfig.forwardDisplay);
-        for (MessageChain sexPicMessage : sexPicMessages) {
-            builder.add(event.getSender(),sexPicMessage);
-        }
-        event.getSubject().sendMessage(builder.build());
+    @ListenEvent(startWith = "点歌",help = "${toolHelp%点歌}",type = EventFunctionType.tool,appendToken = "点歌")
+    public Object orderSong (MessageChainBuilder builder, GroupMessageEvent event,BotMessageInfo info) throws IOException {
+        MusicSource source = new QQSource();
+//        List<String> list = source.getMusicList("左手指月");
+//        int i=0;
+//        for (String s : list) {
+//            i++;
+//            builder.append(new PlainText(i+"."+s+"\n"));
+//        }
+        MusicInfo info1 = source.getMusicInfo("墨尔本的秋天",0,true);
+        builder.append(new PlainText(info1.toString()+"\n\n"));
+        return false;
     }
 
-    @ListenEvent(startWith = "色图",autoSend = false,blackListType = false)
-    public void saxPic (MessageChainBuilder builder, GroupMessageEvent event,BotMessageInfo info) throws IOException {
-        Friend friend = BotFrameworkConfig.bot.getFriend(event.getSender().getId());
-        if (friend==null){
-            builder.append(new QuoteReply(event.getSource()));
-            builder.append("对不起，你现在还不是"+BotInfo.bname+"的好友，快加上好友一起看色图吧，别忘了好友验证填『"+BotInfo.verifyAddFriend+"』哦~");
-            event.getSubject().sendMessage(builder.build());
-            return;
-        }
-        List<MessageChain> sexPicMessages = CommonEventToolUtil.getSexPic(info, true,BotInfo.maxPic);
-        if(sexPicMessages==null){
-            event.getSubject().sendMessage("搜索无结果，换个关键词/标签 试试吧~");
-            return;
-        }
-        ForwardMessageBuilder forwardBuilder=new ForwardMessageBuilder(event.getSender());
-        forwardBuilder.setDisplayStrategy(BotFrameworkConfig.forwardDisplay);
-        for (MessageChain sexPicMessage : sexPicMessages) {
-            forwardBuilder.add(event.getSender(),sexPicMessage);
-        }
-        MessageReceipt<Member> receipt = event.getSender().sendMessage(forwardBuilder.build());
-        receipt.recallIn(BotInfo.r18RecallTime*1000);
-        event.getSubject().sendMessage("太色啦>_<，已经私发你了，注意查看私聊哦~~~");
-    }
-
-    @ListenEvent(startWith = "test",autoSend =false)
-    public void saxPics (MessageChainBuilder builder, GroupMessageEvent event,BotMessageInfo info) throws IOException {
-        String value = ImageUploadUtil.getHttpValue(Apis.kuwoApi+info.getParams().getWithoutThrow("param1"));
-        int i = value.lastIndexOf("http");
-        value=value.substring(i,value.length()-1);
-        HttpRequest request = HttpUtil.createGet(value);
-        InputStream inputStream = request.execute().bodyStream();
-        File file = AudioUtils.mp3ToSilk(inputStream,300000);
-        OfflineAudio audio = BotAudioUtil.upLoad(file, event.getGroup());
-        event.getGroup().sendMessage(audio);
+    @ListenEventAppend(token = "点歌",appendToken = "点歌",autoSend = false)
+    public Object orderSong (MessageChainBuilder builder, GroupMessageEvent event,Object obj) throws IOException {
+        return false;
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.xxj.qqbot.event.friendevent;
+package com.xxj.qqbot.event.event;
 
 import com.xxj.qqbot.event.aop.init.BotEvents;
 import com.xxj.qqbot.event.aop.init.BotExceptionHandler;
@@ -9,7 +9,6 @@ import com.xxj.qqbot.util.common.ValUtil;
 import net.mamoe.mirai.event.AbstractEvent;
 import net.mamoe.mirai.event.Listener;
 import net.mamoe.mirai.event.events.BotInvitedJoinGroupRequestEvent;
-import net.mamoe.mirai.event.events.BotJoinGroupEvent;
 import net.mamoe.mirai.event.events.FriendMessageEvent;
 import net.mamoe.mirai.event.events.MessageEvent;
 import net.mamoe.mirai.event.events.NewFriendRequestEvent;

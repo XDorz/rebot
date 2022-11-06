@@ -49,7 +49,9 @@ mirai:
     replydatapath: ${mirai.config.workdir}/reply/
     replyapipath: ${mirai.config.workdir}/api/
     botpath: ${mirai.config.workdir}/
+    tempfile: ${mirai.config.workdir}/temp/
 
+    background: ${mirai.config.workdir}/source/background/
     image: ${mirai.config.workdir}/source/image/
     minesweeper: ${mirai.config.workdir}/source/MineSweeper/
     pokecard: ${mirai.config.workdir}/source/PokeCard/
